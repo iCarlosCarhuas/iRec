@@ -1,94 +1,89 @@
 # iRec
 
-PWA para crear y compartir albumes digitales tematicos.
+> Álbumes digitales temáticos para conservar, organizar y compartir recuerdos.
 
-**Estado:** MVP foundation  
-**Version:** `0.1.0`
+iRec es una PWA orientada a la creación de álbumes digitales privados o públicos, donde cada usuario mantiene control sobre su contenido y almacenamiento.
 
-## Stack inicial
+El proyecto combina autenticación passwordless mediante TOTP, almacenamiento BYO con Cloudflare R2, generación temática asistida por IA e integración con YouTube para video y transmisiones en vivo.
 
-- Angular 22 PWA
-- NestJS 12
-- TypeScript 6
-- pnpm workspace
-- Zod 4
-- zod-openapi 6
-- OpenAPI 3.1
-- Scalar API Reference
-- PostgreSQL + Redis preparados para desarrollo local
+---
 
-La arquitectura funcional completa esta en [`docs/`](docs/README.md).
+## Estado del proyecto
 
-## Requisitos locales
+**Versión actual:** `v0.1.0 — Foundation`
 
-- Node.js `24.15.0+`
-- Corepack
-- Docker/Podman opcional para PostgreSQL y Redis
+iRec se encuentra actualmente en fase MVP.
 
-## Inicio rapido en Windows PowerShell
+La versión `v0.1.0` establece:
 
-```powershell
-cd E:\MVP\iRec
+- monorepo con pnpm;
+- Angular PWA;
+- API NestJS;
+- contratos compartidos con Zod;
+- OpenAPI 3.1 mediante `zod-openapi`;
+- documentación interactiva con Scalar;
+- infraestructura local para PostgreSQL y Redis;
+- documentación técnica y funcional versionada;
+- estrategia Git Worktrees.
 
-corepack enable
-pnpm install
+---
 
-# Los builds nativos necesarios ya estan aprobados en pnpm-workspace.yaml.
+## Visión
 
-# Opcional por ahora: levanta PostgreSQL y Redis.
-pnpm dev:infra
+iRec busca resolver un problema simple:
 
-# Frontend + API
-pnpm dev
-```
+> Los recuerdos digitales suelen terminar dispersos entre dispositivos, servicios de almacenamiento, redes sociales y aplicaciones de mensajería.
 
-## URLs
+iRec permite centralizar la experiencia del álbum sin obligar al usuario a entregar la propiedad de sus archivos a la plataforma.
 
-| Servicio | URL |
-|---|---|
-| PWA | http://localhost:4200 |
-| API health | http://localhost:3000/api/health/live |
-| OpenAPI | http://localhost:3000/openapi.json |
-| Scalar | http://localhost:3000/reference |
+Cada creador puede conectar su propio almacenamiento Cloudflare R2 y utilizar iRec como capa de experiencia, organización y presentación.
 
-## Comandos
+---
 
-```bash
-pnpm dev
-pnpm dev:web
-pnpm dev:api
-pnpm build
-pnpm typecheck
-pnpm openapi:check
-pnpm openapi:export
-```
+## Funcionalidades previstas
 
-## Regla de contratos
+### Identidad
+
+- registro mediante correo electrónico;
+- verificación de email;
+- autenticación mediante TOTP;
+- Google Authenticator compatible;
+- sin contraseña tradicional;
+- recovery codes;
+- recuperación mediante correo;
+- dispositivos confiables durante 30 días.
+
+### Álbumes
+
+- creación de múltiples álbumes;
+- álbumes públicos o privados;
+- múltiples álbumes por usuario;
+- propietario e invitados;
+- modo edición;
+- moderación de contenido enviado por invitados.
+
+### Fotografías
+
+- almacenamiento en Cloudflare R2;
+- modelo BYO Storage;
+- subida mediante URLs prefirmadas;
+- thumbnails;
+- organización por álbum.
+
+### Inteligencia artificial
+
+La IA podrá analizar las fotografías y generar una propuesta temática basada en:
+
+- contenido visual;
+- fechas;
+- composición;
+- colores;
+- orden cronológico;
+- instrucciones del propietario.
+
+La IA no genera código ejecutable arbitrario.
+
+Genera un:
 
 ```text
-Zod
-  -> zod-openapi
-  -> OpenAPI 3.1
-  -> /openapi.json
-  -> Scalar /reference
-```
-
-No existe un `openapi.yaml` manual paralelo.
-
-## Siguiente version
-
-`0.2.0 — Identity`
-
-Implementara verificacion de correo, TOTP, recovery codes, trusted devices y sesiones seguras.
-
-
-## Worktrees
-
-Para trabajar frontend, backend y documentación en paralelo sin crear copias independientes del repositorio:
-
-```powershell
-Set-ExecutionPolicy -Scope Process Bypass
-.\scripts\setup-worktrees.ps1
-```
-
-Consulta [`WORKTREES.md`](WORKTREES.md).
+ThemeManifest
