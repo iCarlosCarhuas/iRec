@@ -1,37 +1,46 @@
-# Plan de autenticación TOTP
+# Autenticación TOTP
 
 ## Alta
 
 1. usuario aporta email;
-2. backend envía enlace de un solo uso;
-3. enlace confirma correo;
-4. backend genera secreto TOTP;
-5. se muestra URI `otpauth://` como QR;
-6. usuario confirma código;
-7. secreto pasa a estado activo;
-8. recovery codes son emitidos.
+2. backend inicia verificación sin revelar si existe;
+3. enlace/token confirma correo;
+4. se crea auth flow temporal;
+5. backend genera secreto TOTP;
+6. se muestra QR;
+7. usuario confirma código;
+8. credencial queda activa;
+9. se emiten 10 recovery codes;
+10. se emite JWT access + refresh;
+11. opcionalmente se registra trusted device.
 
 ## Login
 
 - email;
 - TOTP;
-- rate limit por IP + identidad;
-- protección ante enumeración;
-- sesión segura.
+- rate limit por IP + cuenta;
+- replay protection;
+- JWT access en cookie HttpOnly;
+- refresh opaco rotativo;
+- trusted device opcional.
 
 ## Rotación
 
-1. sesión reciente;
-2. desafío de recuperación/TOTP actual;
-3. generar secreto nuevo;
-4. confirmar TOTP nuevo;
-5. revocar anterior de manera atómica.
+1. sesión válida;
+2. TOTP actual;
+3. secreto nuevo;
+4. confirmación del nuevo TOTP;
+5. sustitución de secreto;
+6. recuperación regenerada;
+7. trusted devices revocados.
 
 ## Recuperación
 
-Orden preferente:
+Alternativas:
 
 1. correo verificado;
 2. recovery code.
 
-Cloudflare R2 no participa en recuperación de identidad.
+La recuperación abre un auth flow y obliga a enrolar un TOTP nuevo.
+
+Cloudflare R2 no participa en identidad.

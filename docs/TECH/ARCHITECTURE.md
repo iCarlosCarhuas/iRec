@@ -1,49 +1,63 @@
 # Arquitectura técnica
 
-## Stack propuesto
+## Stack actual
 
 ### Frontend
 - Angular.
 - TypeScript.
 - Angular PWA / Service Worker.
-- Zod para tipos/validación de contratos compartidos donde sea conveniente.
+- contratos compartidos `@irec/contracts`.
 - CSS variables / design tokens.
-- reproductor/embeds YouTube.
+- embeds/reproductor YouTube.
 
 ### Backend
 - NestJS.
 - TypeScript.
-- PostgreSQL.
-- Redis para rate limiting, sesiones auxiliares y locks.
+- PostgreSQL 17.
+- Drizzle ORM.
+- Redis.
 - Zod 4.
 - `zod-openapi`.
-- Scalar API Reference.
-- AWS SDK v3 para API S3 compatible de R2.
-- Google APIs para YouTube.
-- proveedor de email transaccional desacoplado.
+- OpenAPI 3.1.
+- Scalar.
+- `jose` para JWT RS256.
+- `otplib` para TOTP.
+- `bcryptjs` para recovery codes.
+- Nodemailer/Mailpit local; Resend producción.
 
-### Media
-- Cloudflare R2: fotos, thumbnails, assets de tema.
-- YouTube: videos, live y grabaciones post-live.
-- MediaMTX/FFmpeg: gateway WebRTC -> RTMPS para live desde navegador.
+### Media futura
+- Cloudflare R2: fotos, thumbnails y assets.
+- YouTube: videos, live y grabaciones.
+- MediaMTX/FFmpeg: WebRTC -> RTMPS para live desde navegador.
 
-## Diagrama
+## Diagrama lógico actual
 
 ```mermaid
 flowchart TB
-PWA[Angular PWA] --> API[NestJS API]
-PWA -->|presigned PUT/GET| R2[(Cloudflare R2)]
-API --> DB[(PostgreSQL)]
-API --> REDIS[(Redis)]
-API --> R2
-API --> YT[YouTube APIs]
-PWA -->|WebRTC| GW[Media Gateway]
-GW -->|RTMPS| YT
-API --> AI[AI Provider]
-API --> MAIL[Email Provider]
+WEB[Angular PWA] -->|HTTPS + HttpOnly cookies| API[NestJS API]
+API --> DB[(irec-postgres / PostgreSQL)]
+API --> REDIS[(irec-redis)]
+API --> MAIL[irec-mailpit local / Resend prod]
+
+API -. v0.4 .-> R2[(Cloudflare R2 BYO)]
+API -. v0.5 .-> AI[AI Provider]
+API -. v0.6 .-> YT[YouTube APIs]
+WEB -. v0.6 WebRTC .-> GW[Media Gateway]
+GW -. RTMPS .-> YT
 ```
 
-## Monorepo previsto
+## Identity request path
+
+```text
+Angular
+  ↓ HttpOnly cookies
+NestJS
+  ├─ JWT RS256 verification
+  ├─ PostgreSQL identity
+  └─ Redis refresh/revocation/rate-limit state
+```
+
+## Monorepo
 
 ```text
 iRec/
@@ -59,9 +73,28 @@ iRec/
 └─ pnpm-workspace.yaml
 ```
 
+## Naming
+
+Los recursos técnicos creados por iRec usan:
+
+```text
+irec-<contexto>
+```
+
+Ejemplos actuales:
+
+```text
+irec-infra
+irec-postgres
+irec-redis
+irec-mailpit
+irec-network
+```
+
 ## Límites
 
-- `apps/web` nunca recibe secretos R2.
-- `packages/contracts` contiene schemas compartidos sin lógica de infraestructura.
-- el documento OpenAPI se genera desde schemas y rutas declaradas en backend.
-- Scalar consume `/openapi.json`; no mantiene una segunda especificación manual.
+- `apps/web` no recibe claves privadas, secreto TOTP ni credenciales R2.
+- JWT/refresh viven en cookies HttpOnly, no en localStorage.
+- `packages/contracts` no contiene lógica de infraestructura.
+- OpenAPI se genera desde schemas/rutas; no existe `openapi.yaml` manual.
+- Scalar consume `/openapi.json`.

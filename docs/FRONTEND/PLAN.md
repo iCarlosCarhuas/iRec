@@ -1,81 +1,72 @@
 # Plan Frontend
 
-## Objetivo
+## v0.2.0 Identity — estado
 
-PWA mobile-first capaz de funcionar como experiencia principal del álbum y panel del creador.
+**Gate frontend: ✅ PASSED**
 
-## Módulos
+## Rutas implementadas
 
 ```text
-app/
-├─ core/
-│  ├─ auth/
-│  ├─ api/
-│  ├─ guards/
-│  └─ storage/
-├─ features/
-│  ├─ auth/
-│  ├─ dashboard/
-│  ├─ albums/
-│  ├─ uploads/
-│  ├─ moderation/
-│  ├─ themes/
-│  ├─ youtube/
-│  └─ live/
-└─ shared/
+/
+├─ /auth
+├─ /auth/verify-email
+├─ /auth/totp/setup
+├─ /auth/recovery-codes
+├─ /auth/recover
+└─ /settings/security
 ```
 
-## Pantallas
+## Implementado
 
-1. landing;
-2. register/login;
-3. TOTP enrollment;
-4. recovery;
-5. dashboard;
-6. create album;
-7. storage setup wizard;
-8. album viewer;
-9. album edit mode;
-10. upload;
-11. moderation queue;
-12. AI theme builder;
-13. YouTube connection;
-14. live control;
-15. settings.
+- login email + TOTP;
+- alta por email;
+- verificación de correo;
+- enrolamiento TOTP;
+- recovery codes;
+- recovery por email;
+- recovery por código;
+- trusted devices;
+- revoke individual/all;
+- rotación TOTP;
+- restauración de sesión;
+- cookies HttpOnly gestionadas por backend;
+- no uso de localStorage para access/refresh;
+- proxy local `/api -> 127.0.0.1:3000`.
 
-## PWA
+## TOTP onboarding
 
-- installable;
-- app shell cacheable;
-- no cachear secretos;
-- uploads reanudables cuando sea viable;
-- estados offline explícitos;
-- share target evaluable en etapa posterior.
+En `/auth/totp/setup`:
 
-## API
+```text
+instalar autenticador
+→ +
+→ escanear QR
+→ código de 6 dígitos
+→ Activar TOTP
+→ recovery codes
+```
 
-Frontend no define manualmente DTOs divergentes.
+Camino principal:
+- Google Authenticator.
 
-Los tipos deben derivarse/generarse desde contratos compartidos u OpenAPI.
+Alternativa:
+- Microsoft Authenticator.
 
-## Edición
+## HyperFrames
 
-Entrar a edición requiere:
-1. sesión válida;
-2. ownership validado por servidor;
-3. código de edición correcto cuando esté habilitado.
+Tutorial animado embebido dentro de la misma ruta.
 
-## Theme renderer
+QA:
 
-Solo renderiza componentes allowlisted:
+```text
+Runtime   OK
+Layout    OK
+Motion    OK
+Contrast  73/73 WCAG AA
+```
 
-- hero;
-- masonry;
-- timeline;
-- carousel;
-- editorial grid;
-- video block;
-- live block;
-- text block.
+## Gate siguiente
 
-Nunca ejecuta JS producido por IA.
+Frontend queda cerrado para esta fase.
+
+Lo siguiente es **E2E Identity**, no Album Core.
