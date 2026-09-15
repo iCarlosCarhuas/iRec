@@ -10,73 +10,109 @@ email verificado + TOTP
 
 No existe contraseña tradicional.
 
+## Modelo de sesión
+
+### Access token
+
+- JWT RS256;
+- TTL local actual: 15 minutos;
+- `iss=irec`;
+- `aud=irec-web`;
+- `sub=userId`;
+- `jti` único;
+- cookie `irec_access`;
+- HttpOnly;
+- SameSite=Lax;
+- Secure en producción;
+- revocación de `jti` restante en Redis cuando aplica.
+
+No se almacena en `localStorage` ni `sessionStorage`.
+
+### Refresh token
+
+- opaco y CSPRNG;
+- TTL local actual: 12 horas;
+- cookie `irec_refresh`;
+- solo su SHA-256 se usa como clave de estado;
+- rotación en cada uso;
+- tokens consumidos se marcan para detectar reuso;
+- reuso provoca revocación de la familia.
+
+### Trusted device
+
+- token separado de access/refresh;
+- cookie `irec_trusted`;
+- máximo 30 días;
+- revocable individualmente o en bloque;
+- sin fingerprinting invasivo.
+
 ## TOTP
 
+- SHA-1;
+- 6 dígitos;
+- 30 segundos;
+- tolerancia ±1 timestep;
 - secreto generado con CSPRNG;
-- QR solo durante enrolamiento/reemplazo;
-- secreto cifrado en reposo;
-- validación con ventana temporal limitada;
-- protección contra replay cuando corresponda;
-- regenerar TOTP invalida el secreto anterior.
+- QR solo en enrolamiento/rotación;
+- secreto cifrado con AES-256-GCM;
+- replay protection mediante `lastTimeStep`;
+- rotar invalida el secreto anterior.
 
 ## Recovery codes
 
-- generados aleatoriamente;
+- 10 códigos;
+- formato humano con prefijo `IREC-`;
 - mostrados una sola vez;
-- almacenados solo como hashes;
-- cada código es de un solo uso;
-- regenerar recovery codes invalida el set previo.
+- un solo uso;
+- hash bcrypt cost 12;
+- regenerar/rotar invalida el set anterior.
 
-## Trusted devices
+bcrypt se usa para secretos introducidos por personas. Tokens aleatorios de alta
+entropía usan SHA-256 para lookup eficiente, no bcrypt.
 
-- máximo 30 días;
-- token independiente del TOTP;
-- cookie `HttpOnly`, `Secure`, `SameSite`;
-- revocable;
-- fingerprinting invasivo prohibido.
+## Email y recuperación
+
+- tokens aleatorios de alta entropía;
+- expiración corta;
+- respuestas anti-enumeración;
+- rate limits por IP y cuenta;
+- Cloudflare R2 no participa en recuperación de identidad.
+
+## Secretos reversibles
+
+Se cifran con AES-256-GCM cuando la aplicación necesita recuperarlos:
+
+- TOTP secret;
+- R2 secret key (v0.4);
+- YouTube OAuth refresh token (v0.6).
 
 ## R2
 
-Credenciales del propietario:
-
-- nunca expuestas al navegador;
-- cifradas mediante una master key del servidor/KMS;
+- credenciales nunca al navegador;
 - permisos mínimos;
-- preferencia por bucket dedicado;
-- presigned URL de corta vida para upload/download.
+- bucket dedicado recomendado;
+- presigned URLs de vida corta.
 
 ## YouTube
 
 - OAuth 2.0;
 - scopes mínimos;
 - refresh token cifrado;
-- revocación disponible;
-- nunca registrar tokens en logs.
-
-## Modo edición
-
-El código de edición es defensa adicional de UX, no autorización primaria.
-
-Backend siempre exige:
-
-```text
-authenticated user === album.owner
-```
+- tokens ausentes de logs.
 
 ## API
 
 - rate limit en auth;
-- CSRF según modelo de sesión;
 - CORS explícito;
-- headers seguros;
-- validación Zod en toda entrada;
-- límites de tamaño;
+- cookies HttpOnly;
+- SameSite=Lax;
+- Secure en producción;
+- validación Zod;
 - IDs no secuenciales;
-- auditoría de operaciones sensibles.
+- límites de tamaño;
+- auditoría futura de operaciones sensibles.
 
 ## IA
 
-- el modelo no ejecuta HTML/JS arbitrario;
-- solo genera un `ThemeManifest` validado;
-- sanitización de texto;
-- rechazo de URLs o componentes fuera de allowlist.
+El modelo no ejecuta HTML/JS arbitrario. Solo genera un `ThemeManifest`
+validado y renderizado mediante componentes allowlisted.

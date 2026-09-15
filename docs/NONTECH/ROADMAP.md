@@ -1,22 +1,51 @@
 # Roadmap
 
-## 0.1.0 — Foundation
+## 0.1.0 — Foundation ✅
 
-- documentación;
+- documentación inicial;
 - arquitectura;
 - contratos;
-- estructura de monorepo;
-- CI básico;
-- entorno local.
+- monorepo;
+- entorno local;
+- OpenAPI + Scalar;
+- release/tag.
 
-## 0.2.0 — Identity
+## 0.2.0 — Identity 🚧
 
+### Backend ✅
 - email verification;
 - TOTP;
 - recovery codes;
 - trusted devices;
-- sesiones;
-- rate limiting.
+- JWT RS256;
+- refresh rotation/reuse detection;
+- rate limiting;
+- PostgreSQL/Drizzle;
+- Redis;
+- Mailpit;
+- OpenAPI;
+- backend gate.
+
+### Frontend ⏳
+- `/auth`;
+- verificación de email;
+- TOTP setup;
+- recovery codes;
+- recovery;
+- security settings;
+- integración de cookies/sesión.
+
+### E2E ⏳
+- alta completa;
+- logout/login;
+- remember device;
+- restore session;
+- revoke trusted device;
+- recovery;
+- rotate TOTP;
+- validación de que el TOTP anterior deja de servir.
+
+**Regla:** no crear tag `v0.2.0` hasta cerrar frontend + E2E + integración a `main`.
 
 ## 0.3.0 — Album Core
 
@@ -55,11 +84,10 @@
 
 ## 0.7.0 — Hardening
 
-- e2e;
+- E2E global;
 - security audit;
-- backups de DB;
+- backups;
 - observabilidad;
-- rate limits;
 - UX de errores;
 - PWA offline shell.
 

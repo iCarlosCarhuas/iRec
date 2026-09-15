@@ -1,10 +1,36 @@
 # Plan Frontend
 
-## Objetivo
+## Estado actual
 
-PWA mobile-first capaz de funcionar como experiencia principal del álbum y panel del creador.
+`v0.2.0 Identity` backend ya está listo. El siguiente gate es frontend.
 
-## Módulos
+## Gate Identity frontend
+
+Pantallas/rutas:
+
+```text
+/auth
+/auth/verify-email
+/auth/totp/setup
+/auth/recovery-codes
+/auth/recover
+/settings/security
+```
+
+## Reglas Identity
+
+- no guardar access/refresh en localStorage;
+- usar cookies HttpOnly gestionadas por backend;
+- requests con credentials;
+- restaurar estado mediante `/api/auth/session`;
+- recovery codes deben mostrarse claramente una sola vez;
+- permitir copiar/descargar recovery codes;
+- `rememberDevice` es explícito;
+- estados de error no deben facilitar enumeración;
+- settings permite listar/revocar trusted devices;
+- rotación TOTP debe advertir que revoca el anterior.
+
+## Estructura
 
 ```text
 app/
@@ -25,57 +51,18 @@ app/
 └─ shared/
 ```
 
-## Pantallas
-
-1. landing;
-2. register/login;
-3. TOTP enrollment;
-4. recovery;
-5. dashboard;
-6. create album;
-7. storage setup wizard;
-8. album viewer;
-9. album edit mode;
-10. upload;
-11. moderation queue;
-12. AI theme builder;
-13. YouTube connection;
-14. live control;
-15. settings.
-
 ## PWA
 
 - installable;
 - app shell cacheable;
 - no cachear secretos;
-- uploads reanudables cuando sea viable;
-- estados offline explícitos;
-- share target evaluable en etapa posterior.
+- estados offline explícitos.
 
-## API
+## Contrato
 
-Frontend no define manualmente DTOs divergentes.
+Frontend no inventa DTOs divergentes.
+Debe usar `@irec/contracts` y/o contrato generado desde OpenAPI.
 
-Los tipos deben derivarse/generarse desde contratos compartidos u OpenAPI.
+## Después de Identity
 
-## Edición
-
-Entrar a edición requiere:
-1. sesión válida;
-2. ownership validado por servidor;
-3. código de edición correcto cuando esté habilitado.
-
-## Theme renderer
-
-Solo renderiza componentes allowlisted:
-
-- hero;
-- masonry;
-- timeline;
-- carousel;
-- editorial grid;
-- video block;
-- live block;
-- text block.
-
-Nunca ejecuta JS producido por IA.
+Dashboard/Album Core inicia en `v0.3.0`, no antes de cerrar `v0.2.0`.

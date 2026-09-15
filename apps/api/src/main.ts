@@ -2,8 +2,11 @@ import 'reflect-metadata';
 
 import { NestFactory } from '@nestjs/core';
 import { apiReference } from '@scalar/nestjs-api-reference';
+import cookieParser from 'cookie-parser';
+
 import { AppModule } from './app.module.js';
 import { openApiDocument } from './openapi/document.js';
+import { ProblemDetailsFilter } from './http/problem-details.filter.js';
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule, {
@@ -22,6 +25,9 @@ async function bootstrap(): Promise<void> {
     credentials: true,
   });
 
+  app.use(cookieParser());
+  app.useGlobalFilters(new ProblemDetailsFilter());
+
   app.setGlobalPrefix('api');
 
   app.getHttpAdapter().get('/openapi.json', (_request: unknown, response: any) => {
@@ -37,8 +43,11 @@ async function bootstrap(): Promise<void> {
     }),
   );
 
+  app.enableShutdownHooks();
+
   await app.listen(port);
   console.log(`iRec API: http://localhost:${port}`);
+  console.log(`Mailpit:  http://localhost:8025`);
   console.log(`Scalar:   http://localhost:${port}/reference`);
 }
 
