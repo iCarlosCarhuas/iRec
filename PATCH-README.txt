@@ -1,25 +1,20 @@
-iRec v0.1.0 — Foundation Fix 2
-==============================
+iRec v0.2.0 — HyperFrames accessibility fix
+============================================
 
-Este ZIP es un parche DROP-IN.
+Corrige los errores reales reportados por:
 
-Extraer su contenido directamente dentro de:
+  npx hyperframes check
 
-E:\MVP\iRec
+Cambios:
+- mejora contraste de textos pequeños;
+- conserva runtime/layout/motion sin cambios;
+- agrega script QA dedicado.
 
-permitiendo reemplazar los archivos existentes.
+Aplicar sobre:
+E:\MVP\iRec-worktrees\frontend
 
-Corrige:
+Validar:
+  powershell.exe -ExecutionPolicy Bypass -File ./scripts/check-totp-hyperframes.ps1
 
-- apps/api/tsconfig.json
-- apps/api/tsconfig.build.json
-- scripts/verify-foundation.ps1
-- documentación del hotfix
-
-Después ejecutar desde Git Bash:
-
-powershell.exe -ExecutionPolicy Bypass -File ./scripts/verify-foundation.ps1
-
-Para validar sin levantar servidores:
-
-powershell.exe -ExecutionPolicy Bypass -File ./scripts/verify-foundation.ps1 -SkipDev
+El warning timeline_track_too_dense puede seguir apareciendo.
+Es una advertencia de mantenibilidad, no un fallo de accesibilidad ni runtime.

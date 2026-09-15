@@ -226,6 +226,9 @@ importers:
       '@angular/service-worker':
         specifier: ^22.1.0
         version: 22.1.6(@angular/core@22.1.6(@angular/compiler@22.1.6)(rxjs@7.8.2))(rxjs@7.8.2)
+      '@irec/contracts':
+        specifier: workspace:*
+        version: link:../../packages/contracts
       rxjs:
         specifier: ^7.8.2
         version: 7.8.2

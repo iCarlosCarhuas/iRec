@@ -1,0 +1,9 @@
+{
+  "name": "irec-totp-onboarding",
+  "title": "iRec — Configurar Google Authenticator paso a paso",
+  "description": "Tutorial preciso del flujo iRec /auth/totp/setup usando Google Authenticator, con nota para Microsoft Authenticator.",
+  "width": 1080,
+  "height": 1920,
+  "fps": 30,
+  "duration": 26
+}
