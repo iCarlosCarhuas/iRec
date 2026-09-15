@@ -1,0 +1,28 @@
+iRec — Worktree Quickstart
+==========================
+
+1) Extrae ESTE ZIP de forma que el resultado sea:
+
+   E:\MVP\iRec\
+
+2) PowerShell:
+
+   cd E:\MVP\iRec
+   corepack enable
+   pnpm install
+
+3) Inicializa Git + worktrees:
+
+   Set-ExecutionPolicy -Scope Process Bypass
+   .\scripts\setup-worktrees.ps1
+
+4) Quedara:
+
+   E:\MVP\iRec                         -> main
+   E:\MVP\iRec-worktrees\frontend      -> feat/frontend
+   E:\MVP\iRec-worktrees\backend       -> feat/backend
+   E:\MVP\iRec-worktrees\docs          -> docs/project
+
+5) Para abrirlos en Windows Terminal:
+
+   .\scripts\open-worktrees.ps1

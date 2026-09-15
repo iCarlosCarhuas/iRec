@@ -1,0 +1,22 @@
+{
+  "name": "irec",
+  "version": "0.1.0",
+  "private": true,
+  "description": "iRec — PWA de albumes digitales tematicos",
+  "packageManager": "pnpm@12.4.1",
+  "engines": {
+    "node": ">=24.15.0"
+  },
+  "scripts": {
+    "dev": "pnpm --filter @irec/contracts build && pnpm -r --parallel --filter \"./apps/*\" dev",
+    "dev:web": "pnpm --filter @irec/web dev",
+    "dev:api": "pnpm --filter @irec/api dev",
+    "dev:infra": "docker compose -f infra/docker-compose.dev.yml up -d",
+    "dev:infra:down": "docker compose -f infra/docker-compose.dev.yml down",
+    "build": "pnpm -r --if-present build",
+    "typecheck": "pnpm -r --if-present typecheck",
+    "test": "pnpm -r --if-present test",
+    "openapi:check": "pnpm --filter @irec/api openapi:check",
+    "openapi:export": "pnpm --filter @irec/api openapi:export"
+  }
+}
