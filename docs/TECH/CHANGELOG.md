@@ -7,6 +7,11 @@ Cambios de arquitectura, implementación, infraestructura, API, seguridad y depe
 ### v0.2.0 — Identity (en integración)
 
 #### Added
+- Estrategia `integration/vX.Y.Z` para ensamblar release candidates sin usar `main` como área de integración.
+- Worktree de release `E:\MVP\iRec-worktrees\v0.2.0`.
+- Full-stack Docker definido como gate reproducible de onboarding/E2E.
+- ADR-0012 para rama de integración + Docker completo local.
+- Checklist de release `v0.2.0` y runbook de integración.
 - Backend Identity implementado con NestJS.
 - PostgreSQL + Drizzle ORM para identidad persistente.
 - Redis para auth flows, refresh families, revocación y rate limiting.

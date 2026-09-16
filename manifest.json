@@ -2,7 +2,7 @@
   "artifact": "iRec documentation",
   "baseline": "v0.1.0",
   "working_version": "v0.2.0",
-  "sync_date": "2026-09-15",
+  "sync_date": "2026-09-16",
   "state": {
     "foundation": "released",
     "identity_backend": "passed",
@@ -10,6 +10,8 @@
     "identity_e2e": "pending",
     "release_v0.2.0": "pending",
     "totp_onboarding": "passed",
-    "hyperframes_qa": "passed"
+    "hyperframes_qa": "passed",
+    "integration_v0.2.0": "pending",
+    "fullstack_docker": "pending"
   }
 }

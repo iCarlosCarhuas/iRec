@@ -15,3 +15,4 @@ Los ADR preservan el **por qué** de decisiones importantes.
 | 0009 | JWT RS256 + refresh opaco rotativo | Accepted |
 | 0010 | Convención global `irec-*` | Accepted |
 | 0011 | Migraciones SQL versionadas | Accepted |
+| 0012 | Integration branch por release + full-stack Docker local | Accepted |

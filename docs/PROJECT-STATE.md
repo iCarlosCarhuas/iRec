@@ -1,200 +1,205 @@
 # Estado actual del proyecto iRec
 
-**Fecha de corte:** 2026-09-15  
-**Release estable:** `v0.1.0`  
+**Fecha de corte:** 2026-09-16  
+**Release estable:** `v0.1.0 — Foundation`  
 **Release en construcción:** `v0.2.0 — Identity`
 
-Este documento es el punto de reentrada cuando se retoma el proyecto.
+Este documento es el punto de reentrada operativo.
 
-## Git / worktrees
+## 1. Qué representa cada rama hoy
+
+```text
+main
+└─ v0.1.0 Foundation estable
+
+feat/backend
+└─ v0.2.0 Identity backend validado
+
+feat/frontend
+└─ v0.2.0 Identity frontend validado
+
+docs/project
+└─ documentación v0.2.0 sincronizada
+```
+
+Las tres ramas de trabajo están intencionalmente fuera de `main`. Ninguna de
+ellas contiene por sí sola el candidato completo de `v0.2.0`.
+
+## 2. Worktrees actuales
 
 ```text
 E:\MVP\iRec
 └─ main
-   └─ v0.1.0 estable
 
 E:\MVP\iRec-worktrees\backend
 └─ feat/backend
-   └─ v0.2.0 Identity backend validado
 
 E:\MVP\iRec-worktrees\frontend
 └─ feat/frontend
-   └─ v0.2.0 Identity frontend validado
 
 E:\MVP\iRec-worktrees\docs
 └─ docs/project
-   └─ documentación v0.2.0 sincronizada
 ```
 
-No hacer desarrollo de feature directamente sobre `main`.
+## 3. Próximo worktree
 
-## v0.2.0 — estado por gate
+Se crea antes del E2E final:
+
+```text
+E:\MVP\iRec-worktrees\v0.2.0
+└─ integration/v0.2.0
+```
+
+Su función es producir el primer árbol que contenga simultáneamente backend,
+frontend y documentación de `v0.2.0` sin alterar `main`.
+
+## 4. Estado por gate
 
 | Gate | Estado |
 |---|---|
+| Foundation `v0.1.0` | ✅ RELEASED |
 | Backend Identity | ✅ PASSED |
 | Frontend Identity | ✅ PASSED |
 | TOTP onboarding | ✅ PASSED |
 | HyperFrames QA | ✅ PASSED |
+| Crear `integration/v0.2.0` | ⏳ Pendiente |
+| Full-stack Docker | ⏳ Pendiente |
 | E2E funcional Identity | ⏳ Pendiente |
-| Integración a `main` | ⏳ Pendiente |
+| Gate final integrado | ⏳ Pendiente |
+| Merge a `main` | ⏳ Pendiente |
 | Tag `v0.2.0` | ⏳ Pendiente |
 
-## Backend validado
+## 5. Backend validado
 
-Resultado:
+`feat/backend` contiene, entre otros:
 
-```text
-iRec v0.2.0 IDENTITY BACKEND PASSED
-```
-
-Incluye:
-
-- PostgreSQL + Drizzle;
+- NestJS Identity;
+- PostgreSQL 17 + Drizzle ORM;
+- migraciones SQL versionadas;
 - Redis;
 - Mailpit;
 - JWT RS256;
-- refresh rotativo;
+- refresh token opaco rotativo;
 - reuse detection;
 - TOTP;
 - recovery codes;
 - trusted devices;
 - OpenAPI 3.1;
 - Scalar;
-- migraciones versionadas.
+- naming `irec-*`;
+- PostgreSQL host `15432`;
+- scripts de diagnóstico, bootstrap de `.env` y gate backend.
 
-## Frontend validado
-
-Resultado:
+Resultado registrado:
 
 ```text
-iRec v0.2.0 IDENTITY FRONTEND PASSED
+iRec v0.2.0 IDENTITY BACKEND PASSED
+OpenAPI 3.1 — 18 paths
 ```
 
-Validó:
+## 6. Frontend validado
 
-- `@irec/contracts` build/typecheck;
-- Angular typecheck;
-- Angular production build;
-- rutas Identity;
-- proxy `/api`;
-- smoke contra backend real;
-- `/auth`;
-- `/auth/recover`;
-- `/settings/security`;
-- `/api/health/live` vía proxy.
-
-## UX Identity implementada
+`feat/frontend` contiene:
 
 ```text
 /
-├─ /auth
-├─ /auth/verify-email
-├─ /auth/totp/setup
-├─ /auth/recovery-codes
-├─ /auth/recover
-└─ /settings/security
+/auth
+/auth/verify-email
+/auth/totp/setup
+/auth/recovery-codes
+/auth/recover
+/settings/security
 ```
 
 Incluye:
 
-- alta por email;
-- login email + TOTP;
-- remember device;
-- recuperación por email;
-- recuperación por recovery code;
+- sesión restaurable con cookies HttpOnly;
+- email + TOTP;
+- recovery por correo y recovery code;
 - trusted devices;
 - revocación;
-- rotación TOTP;
-- recovery codes copiar/descargar.
+- rotación de TOTP;
+- recovery codes;
+- proxy `/api -> 127.0.0.1:3000`;
+- onboarding TOTP;
+- tutorial HyperFrames inline.
 
-## TOTP onboarding
-
-La pantalla:
-
-```text
-/auth/totp/setup
-```
-
-incluye ahora:
-
-- guía paso a paso;
-- Google Authenticator como camino principal;
-- Microsoft Authenticator como alternativa;
-- QR / clave manual;
-- explicación del código de 6 dígitos;
-- continuidad hasta `Activar TOTP`;
-- recordatorio de recovery codes.
-
-## HyperFrames
-
-El tutorial se reproduce dentro de la misma ruta:
+Resultado registrado:
 
 ```text
-/auth/totp/setup
+iRec v0.2.0 IDENTITY FRONTEND PASSED
+HyperFrames: 73/73 contrast checks WCAG AA
 ```
 
-y no abre una ruta de producto separada.
+## 7. Aislamiento esperado entre ramas
 
-QA validado:
+Es normal encontrar archivos aparentemente “viejos” en un worktree de otra
+responsabilidad. Por ejemplo, `feat/frontend` no incorpora todavía la nueva
+infraestructura Docker de `feat/backend`, y `docs/project` no debe usarse como
+árbol ejecutable completo.
+
+Eso no se corrige copiando carpetas entre worktrees. Se resuelve mediante Git
+merge en `integration/v0.2.0`.
+
+## 8. Estrategia de ejecución
+
+### Modo A — desarrollo híbrido actual
 
 ```text
-Runtime   OK
-Layout    OK
-Motion    OK
-Contrast  73/73 WCAG AA
+Docker     → PostgreSQL + Redis + Mailpit
+Host       → NestJS API
+Host       → Angular dev server
 ```
 
-Resultado:
+### Modo B — candidato/release local
+
+Objetivo de `integration/v0.2.0`:
 
 ```text
-[OK] iRec TOTP HyperFrames QA PASSED
+docker compose up --build -d
 ```
 
-La advertencia `timeline_track_too_dense` queda aceptada por ahora como
-mantenibilidad, no como error de runtime/render/accesibilidad.
-
-## Infraestructura local
+para levantar:
 
 ```text
-irec-infra
-├─ irec-postgres
-├─ irec-redis
-├─ irec-mailpit
-└─ irec-network
+irec-web
+irec-api
+irec-migrate
+irec-postgres
+irec-redis
+irec-mailpit
 ```
 
-PostgreSQL host:
+El full-stack Docker todavía es un gate pendiente; no se documenta como
+implementado hasta que exista y sea probado.
+
+## 9. Próxima secuencia
 
 ```text
-127.0.0.1:15432
+crear integration/v0.2.0
+        ↓
+merge feat/backend
+        ↓
+merge feat/frontend
+        ↓
+merge docs/project
+        ↓
+resolver/validar integración
+        ↓
+implementar full-stack Docker
+        ↓
+Docker smoke gate
+        ↓
+E2E Identity
+        ↓
+gate final
+        ↓
+PR/merge a main
+        ↓
+tag v0.2.0
 ```
 
-## Próximo gate
+## 10. Regla
 
-Ahora corresponde el E2E funcional real:
-
-```text
-registro
-→ email verify
-→ TOTP setup
-→ activar TOTP
-→ recovery codes
-→ logout
-→ login
-→ remember device
-→ session restore
-→ trusted devices
-→ recovery
-→ TOTP rotation
-→ invalidar TOTP anterior
-```
-
-## Regla
-
-No avanzar a `v0.3.0 — Album Core` hasta cerrar:
-
-1. E2E Identity;
-2. integración a `main`;
-3. gate final;
-4. tag/release `v0.2.0`.
+No avanzar a `v0.3.0 — Album Core` hasta cerrar `v0.2.0` en `main` y publicar
+el tag correspondiente.
