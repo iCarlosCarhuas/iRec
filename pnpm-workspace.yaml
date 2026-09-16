@@ -2,9 +2,6 @@ packages:
   - "apps/*"
   - "packages/*"
 
-# pnpm v12 blocks dependency lifecycle scripts unless explicitly approved.
-# These four packages are transitive build-time dependencies of the current
-# Angular/tooling graph and were audited/approved during v0.1.0 stabilization.
 allowBuilds:
   "@parcel/watcher": true
   esbuild: true

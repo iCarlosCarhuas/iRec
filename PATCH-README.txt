@@ -1,25 +1,19 @@
-iRec v0.1.0 — Foundation Fix 2
-==============================
+iRec v0.2.0 — TypeScript compatibility patch
+=============================================
 
-Este ZIP es un parche DROP-IN.
-
-Extraer su contenido directamente dentro de:
-
-E:\MVP\iRec
-
-permitiendo reemplazar los archivos existentes.
+DROP-IN:
+E:\MVP\iRec-worktrees\backend
 
 Corrige:
+- otplib 13 / timeStep narrowing
+- jose 6 / KeyLike removido
+- ioredis 6 / import TypeScript
+- PostgreSQL host port oficial 15432
+- .env.example y documentación de infraestructura
 
-- apps/api/tsconfig.json
-- apps/api/tsconfig.build.json
-- scripts/verify-foundation.ps1
-- documentación del hotfix
+NO sobrescribe .env.
 
-Después ejecutar desde Git Bash:
-
-powershell.exe -ExecutionPolicy Bypass -File ./scripts/verify-foundation.ps1
-
-Para validar sin levantar servidores:
-
-powershell.exe -ExecutionPolicy Bypass -File ./scripts/verify-foundation.ps1 -SkipDev
+DESPUES DE EXTRAER:
+1. pnpm install
+2. pnpm typecheck
+3. powershell.exe -ExecutionPolicy Bypass -File ./scripts/verify-identity-backend.ps1

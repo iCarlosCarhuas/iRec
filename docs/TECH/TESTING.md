@@ -1,51 +1,94 @@
 # Estrategia de pruebas
 
-## Pirámide
+## Gate real v0.2.0 — backend
+
+El gate backend ejecuta:
+
+```text
+pnpm install
+pnpm dev:infra
+pnpm db:diagnose
+pnpm typecheck
+pnpm openapi:check
+pnpm build
+pnpm db:apply
+smoke checks
+```
+
+Resultado validado el 2026-09-15:
+
+```text
+iRec v0.2.0 IDENTITY BACKEND PASSED
+```
+
+## Cobertura del gate
+
+- Docker services healthy;
+- PostgreSQL readiness;
+- consulta DB;
+- existencia de tablas;
+- TypeScript web/contracts/api;
+- OpenAPI 3.1;
+- Angular build;
+- NestJS build;
+- migraciones;
+- `/api/health/live`;
+- `/api/health/ready`;
+- `/openapi.json`;
+- `/reference`;
+- Mailpit UI.
+
+## E2E Identity pendiente
+
+Debe cubrir:
+
+```text
+email
+→ verificación
+→ QR TOTP
+→ confirmación
+→ recovery codes
+→ logout
+→ login
+→ remember device
+→ session restore / refresh rotation
+→ revoke trusted device
+→ recovery por email
+→ recovery code
+→ rotate TOTP
+→ TOTP anterior inválido
+```
+
+Casos de seguridad:
+
+- TOTP replay;
+- brute force/rate limit;
+- recovery code reutilizado;
+- refresh token reutilizado;
+- refresh family revocada;
+- JWT expirado/revocado;
+- trusted device revocado/expirado;
+- anti-enumeración.
+
+## Versiones posteriores
 
 ### Unit
 - schemas Zod;
-- TOTP;
-- recovery codes;
 - permisos;
 - ThemeManifest;
 - mappers.
 
 ### Integration
-- PostgreSQL;
-- Redis;
-- presigned R2;
-- OAuth callback;
-- OpenAPI generation.
-
-### Contract
-- `/openapi.json` debe generarse en CI;
-- snapshot o diff controlado;
-- frontend client/types deben coincidir con la versión del contrato.
-
-### E2E
-- registro -> TOTP -> dashboard;
-- crear álbum -> conectar R2 -> subir foto;
-- privado vs público;
-- propuesta -> aprobar;
-- generar tema;
-- conectar YouTube;
-- borrar álbum.
-
-## Security tests
-
-- brute force TOTP;
-- reuse recovery code;
-- expired trusted device;
-- IDOR;
-- path traversal en object keys;
-- SSRF en URLs externas;
-- scopes OAuth;
-- secretos ausentes en logs.
+- R2;
+- YouTube OAuth;
+- presigned URLs;
+- media gateway.
 
 ## Definition of Done
 
 Una historia no se cierra sin:
-- tests relevantes;
+- tests/gate relevantes;
 - OpenAPI actualizado si cambia API;
-- changelog correspondiente;
-- documentación afectada.
+- changelog;
+- documentación;
+- migración versionada si cambia DB.

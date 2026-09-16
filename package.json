@@ -1,6 +1,6 @@
 {
   "name": "irec",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "description": "iRec — PWA de albumes digitales tematicos",
   "packageManager": "pnpm@12.4.1",
@@ -11,12 +11,20 @@
     "dev": "pnpm --filter @irec/contracts build && pnpm -r --parallel --filter \"./apps/*\" dev",
     "dev:web": "pnpm --filter @irec/web dev",
     "dev:api": "pnpm --filter @irec/api dev",
-    "dev:infra": "docker compose -f infra/docker-compose.dev.yml up -d",
+    "dev:infra": "docker compose -f infra/docker-compose.dev.yml up -d --wait",
     "dev:infra:down": "docker compose -f infra/docker-compose.dev.yml down",
+    "dev:infra:ps": "docker compose -f infra/docker-compose.dev.yml ps",
+    "dev:infra:logs": "docker compose -f infra/docker-compose.dev.yml logs -f",
     "build": "pnpm -r --if-present build",
     "typecheck": "pnpm -r --if-present typecheck",
     "test": "pnpm -r --if-present test",
     "openapi:check": "pnpm --filter @irec/api openapi:check",
-    "openapi:export": "pnpm --filter @irec/api openapi:export"
+    "openapi:export": "pnpm --filter @irec/api openapi:export",
+    "db:generate": "pnpm --filter @irec/api db:generate",
+    "db:migrate": "pnpm --filter @irec/api db:migrate",
+    "db:apply": "pnpm db:generate && pnpm db:migrate",
+    "db:studio": "pnpm --filter @irec/api db:studio",
+    "db:diagnose": "powershell.exe -ExecutionPolicy Bypass -File ./scripts/diagnose-db.ps1",
+    "identity:verify": "powershell.exe -ExecutionPolicy Bypass -File ./scripts/verify-identity-backend.ps1"
   }
 }
