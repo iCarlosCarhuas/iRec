@@ -25,6 +25,16 @@
     "db:apply": "pnpm db:generate && pnpm db:migrate",
     "db:studio": "pnpm --filter @irec/api db:studio",
     "db:diagnose": "powershell.exe -ExecutionPolicy Bypass -File ./scripts/diagnose-db.ps1",
-    "identity:verify": "powershell.exe -ExecutionPolicy Bypass -File ./scripts/verify-identity-backend.ps1"
+    "identity:verify": "powershell.exe -ExecutionPolicy Bypass -File ./scripts/verify-identity-backend.ps1",
+    "identity:verify:backend": "powershell.exe -ExecutionPolicy Bypass -File ./scripts/verify-identity-backend.ps1",
+    "identity:verify:frontend": "powershell.exe -ExecutionPolicy Bypass -File ./scripts/verify-identity-frontend.ps1 -SkipInstall",
+    "totp:hyperframes:check": "powershell.exe -ExecutionPolicy Bypass -File ./scripts/check-totp-hyperframes.ps1",
+    "irec:doctor": "powershell.exe -ExecutionPolicy Bypass -File ./scripts/irec.ps1 doctor",
+    "irec:setup": "powershell.exe -ExecutionPolicy Bypass -File ./scripts/irec.ps1 setup",
+    "irec:dev": "powershell.exe -ExecutionPolicy Bypass -File ./scripts/irec.ps1 up",
+    "irec:stop": "powershell.exe -ExecutionPolicy Bypass -File ./scripts/irec.ps1 down",
+    "irec:status": "powershell.exe -ExecutionPolicy Bypass -File ./scripts/irec.ps1 status",
+    "irec:logs": "powershell.exe -ExecutionPolicy Bypass -File ./scripts/irec.ps1 logs",
+    "verify:docker": "powershell.exe -ExecutionPolicy Bypass -File ./scripts/verify-fullstack-docker.ps1"
   }
 }

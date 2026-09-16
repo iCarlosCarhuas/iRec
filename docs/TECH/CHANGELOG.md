@@ -10,6 +10,14 @@ Cambios de arquitectura, implementación, infraestructura, API, seguridad y depe
 - Estrategia `integration/vX.Y.Z` para ensamblar release candidates sin usar `main` como área de integración.
 - Worktree de release `E:\MVP\iRec-worktrees\v0.2.0`.
 - Full-stack Docker definido como gate reproducible de onboarding/E2E.
+- `compose.yaml` full-stack con `irec-web`, `irec-api`, `irec-migrate`, PostgreSQL, Redis y Mailpit.
+- Dockerfile de API con Node 24.15.0 + pnpm 12.4.1.
+- Dockerfile de Web con Angular production build + Nginx.
+- Proxy Nginx `/api` hacia `irec-api`.
+- Generador idempotente de `.env.docker` con AES-256/RSA locales.
+- Wrapper `scripts/irec.ps1` para doctor/setup/up/down/status/logs.
+- Gate `verify-fullstack-docker.ps1`.
+- Quick Start full-stack visible también en Scalar/OpenAPI `info.description`.
 - ADR-0012 para rama de integración + Docker completo local.
 - Checklist de release `v0.2.0` y runbook de integración.
 - Backend Identity implementado con NestJS.
@@ -84,6 +92,8 @@ Cambios de arquitectura, implementación, infraestructura, API, seguridad y depe
 - Smoke checks: OK.
 - HyperFrames runtime/layout/motion: OK.
 - HyperFrames contrast: 73/73 WCAG AA.
+- Integración estática full-stack validada el 2026-09-16: JSON/YAML, servicios Compose, lockfile combinado, imports relativos y generador de secretos.
+- Gate Docker runtime: pendiente de ejecución en host con Docker Desktop.
 
 ## [0.1.0] - 2026-09-14
 

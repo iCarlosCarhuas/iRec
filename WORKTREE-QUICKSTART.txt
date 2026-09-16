@@ -1,111 +1,85 @@
-iRec — Worktrees / Integration Quickstart
-=========================================
+iRec — WORKTREE / INTEGRATION QUICKSTART
+=======================================
 
-IDEA CLAVE
-----------
+NO SON PROYECTOS DISTINTOS.
+Todos los directorios son checkouts del mismo repositorio Git.
 
-E:\MVP\iRec y E:\MVP\iRec-worktrees\* NO son proyectos distintos.
-Son checkouts de distintas ramas del MISMO repositorio Git.
-
-ESTADO v0.2.0
--------------
-
+ESTABLE
+-------
 E:\MVP\iRec
-  -> main
-  -> v0.1.0 estable
-  -> NO contiene todavía todo Identity v0.2.0
+branch: main
 
+TRABAJO V0.2.0
+--------------
 E:\MVP\iRec-worktrees\backend
-  -> feat/backend
-  -> backend Identity, DB, Redis, Mailpit, contratos y migraciones
+branch: feat/backend
 
 E:\MVP\iRec-worktrees\frontend
-  -> feat/frontend
-  -> Angular Identity, recovery, trusted devices, TOTP y HyperFrames
+branch: feat/frontend
 
 E:\MVP\iRec-worktrees\docs
-  -> docs/project
-  -> documentación y estado del proyecto
-
-NINGUNO DE ESOS TRES WORKTREES DE FEATURE/DOCS ES EL PRODUCTO COMPLETO v0.2.0.
+branch: docs/project
 
 CANDIDATO COMPLETO
 ------------------
-
-Antes de tocar main se crea:
-
 E:\MVP\iRec-worktrees\v0.2.0
-  -> integration/v0.2.0
+branch: integration/v0.2.0
 
-Ese worktree recibe, por Git merge:
+CREAR INTEGRACION
+-----------------
+Desde E:\MVP\iRec:
 
-main
-  + feat/backend
-  + feat/frontend
-  + docs/project
-  = integration/v0.2.0
-
-NO integrar copiando/extrayendo ZIPs entre worktrees. Los ZIPs son artefactos
-de transporte/revisión; la integración real se hace con Git.
-
-CREAR EL CANDIDATO (Git Bash)
------------------------------
-
-cd /e/MVP/iRec
-git fetch origin --prune
-git switch main
-git pull --ff-only origin main
-
+git fetch origin
 git worktree add -b integration/v0.2.0 ../iRec-worktrees/v0.2.0 main
-cd ../iRec-worktrees/v0.2.0
 
-git merge --no-ff feat/backend  -m "merge(v0.2.0): integrate identity backend"
-git merge --no-ff feat/frontend -m "merge(v0.2.0): integrate identity frontend"
-git merge --no-ff docs/project  -m "merge(v0.2.0): integrate project docs"
+cd /e/MVP/iRec-worktrees/v0.2.0
+git merge --no-ff feat/backend
+git merge --no-ff feat/frontend
+git merge --no-ff docs/project
 
-git status
-git push -u origin integration/v0.2.0
+No copiar carpetas entre worktrees como método de integración.
+Resolver conflictos con criterio y commit.
 
-LEVANTAR HOY (MODO HIBRIDO, HASTA QUE FULL DOCKER ESTE IMPLEMENTADO)
--------------------------------------------------------------------
+LEVANTAR PRODUCTO COMPLETO
+--------------------------
+Primera vez:
 
-Infra desde backend o candidato integrado:
-  pnpm dev:infra
+powershell.exe -ExecutionPolicy Bypass -File ./scripts/irec.ps1 setup
 
-API:
-  powershell.exe -ExecutionPolicy Bypass -File ./scripts/ensure-api.ps1 -StartIfMissing
+Luego:
 
-Web:
-  pnpm dev:web
+docker compose up --build -d
 
 URLs:
-  Web       http://127.0.0.1:4200
-  API       http://127.0.0.1:3000
-  Scalar    http://127.0.0.1:3000/reference
-  Mailpit   http://127.0.0.1:8025
-  Postgres  127.0.0.1:15432
+Web       http://127.0.0.1:4200
+API       http://127.0.0.1:3000
+Scalar    http://127.0.0.1:3000/reference
+Mailpit   http://127.0.0.1:8025
+Postgres  127.0.0.1:15432
+Redis     127.0.0.1:6379
 
-OBJETIVO DEL CANDIDATO
-----------------------
+DETENER SIN BORRAR DATOS
+------------------------
+docker compose down
 
-La experiencia completa para una persona nueva debe quedar reducida a:
+DESTRUCTIVO
+-----------
+docker compose down -v
 
-  docker compose up --build -d
+GATE DOCKER
+-----------
+powershell.exe -ExecutionPolicy Bypass -File ./scripts/verify-fullstack-docker.ps1
 
-El compose full-stack levantará:
-
-  irec-web
-  irec-api
-  irec-migrate
-  irec-postgres
-  irec-redis
-  irec-mailpit
-
-El compose actual de infra (infra/docker-compose.dev.yml) se conserva para el
-modo de desarrollo híbrido.
-
-NO MERGEAR A MAIN TODAVIA
--------------------------
-
-integration/v0.2.0 debe pasar Docker + E2E + gate final antes del merge a main
-y del tag v0.2.0.
+ORDEN DE RELEASE
+----------------
+backend + frontend + docs
+          ↓
+integration/v0.2.0
+          ↓
+Docker gate
+          ↓
+Identity E2E
+          ↓
+main
+          ↓
+tag v0.2.0

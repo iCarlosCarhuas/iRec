@@ -1,137 +1,67 @@
 # Release checklist — v0.2.0 Identity
 
-## Fase 0 — entradas
+## Desarrollo
 
-```text
-[x] main = v0.1.0 estable
-[x] feat/backend gate aprobado
-[x] feat/frontend gate aprobado
-[x] TOTP onboarding aprobado
-[x] HyperFrames QA aprobado
-[x] docs/project actualizado
-```
+- [x] Identity backend implementado.
+- [x] Backend gate aprobado.
+- [x] Identity frontend implementado.
+- [x] Frontend gate aprobado.
+- [x] TOTP onboarding.
+- [x] HyperFrames QA.
+- [x] Documentación de integración.
+- [x] Full-stack Docker implementado en el candidato.
 
-## Fase 1 — integración
+## Integración Git
 
-```text
-[ ] crear integration/v0.2.0
-[ ] merge feat/backend
-[ ] merge feat/frontend
-[ ] merge docs/project
-[ ] resolver conflictos por propiedad
-[ ] pnpm install
-[ ] working tree limpio
-[ ] push integration/v0.2.0
-```
+- [ ] Crear `integration/v0.2.0` desde `main`.
+- [ ] Merge `feat/backend`.
+- [ ] Resolver conflictos y dejar limpio.
+- [ ] Merge `feat/frontend`.
+- [ ] Resolver contratos/lockfile como suma de ambos.
+- [ ] Merge `docs/project`.
+- [ ] Aplicar/commit del bloque Docker/DX.
+- [ ] Push `integration/v0.2.0`.
 
-## Fase 2 — gate técnico integrado
+## Docker gate
 
-```text
-[ ] pnpm typecheck
-[ ] pnpm openapi:check
-[ ] pnpm build
-[ ] pnpm db:diagnose
-[ ] pnpm db:apply
-[ ] db:apply repetido = idempotente
-[ ] backend gate desde candidato
-[ ] frontend gate desde candidato
-```
+- [ ] `irec:setup` genera `.env.docker` una vez.
+- [ ] Segundo `irec:setup` no cambia secretos.
+- [ ] `docker compose up --build -d` termina sin error.
+- [ ] `irec-migrate` termina exit 0.
+- [ ] `irec-postgres` healthy.
+- [ ] `irec-redis` healthy.
+- [ ] `irec-api` healthy.
+- [ ] `irec-web` healthy.
+- [ ] Web responde 200.
+- [ ] API live responde 200.
+- [ ] API ready responde 200.
+- [ ] Scalar abre.
+- [ ] Mailpit abre.
+- [ ] Reinicio conserva datos.
 
-## Fase 3 — full-stack Docker
+## Identity E2E
 
-```text
-[ ] apps/api/Dockerfile
-[ ] apps/web/Dockerfile
-[ ] configuración web/proxy de contenedor
-[ ] compose.yaml raíz
-[ ] irec-migrate one-shot
-[ ] healthchecks
-[ ] secretos locales no versionados
-[ ] docker compose up --build -d
-[ ] docker compose ps OK
-[ ] restart idempotente
-[ ] persistencia OK
-```
+- [ ] Alta email.
+- [ ] Email recibido en Mailpit.
+- [ ] Verify email.
+- [ ] TOTP enrollment.
+- [ ] Confirmar TOTP.
+- [ ] Guardar 10 recovery codes.
+- [ ] Logout.
+- [ ] Login real.
+- [ ] Trusted device.
+- [ ] Restauración de sesión.
+- [ ] Recovery por email.
+- [ ] Recovery code.
+- [ ] Rotar TOTP.
+- [ ] TOTP antiguo rechazado.
 
-## Fase 4 — E2E Identity
+## Release
 
-```text
-[ ] iniciar alta por email
-[ ] correo visible en Mailpit
-[ ] verificar email
-[ ] enrolar TOTP
-[ ] confirmar TOTP
-[ ] mostrar 10 recovery codes
-[ ] logout
-[ ] login email + TOTP
-[ ] remember device
-[ ] restaurar sesión
-[ ] listar trusted devices
-[ ] revocar device
-[ ] recovery por email
-[ ] recovery por recovery code
-[ ] rotar TOTP
-[ ] TOTP anterior inválido
-[ ] refresh rotation
-[ ] refresh reuse detection/family revocation
-```
-
-## Fase 5 — documentación final
-
-```text
-[ ] PROJECT-STATE
-[ ] TECH changelog
-[ ] NONTECH changelog
-[ ] OpenAPI version 0.2.0 (sin -dev en release)
-[ ] README raíz
-[ ] Docker runbook
-[ ] evidencias E2E
-```
-
-## Fase 6 — main
-
-Crear PR:
-
-```text
-integration/v0.2.0 → main
-```
-
-Antes de merge:
-
-```text
-[ ] CI/gates verdes
-[ ] revisión de cambios
-[ ] no hay .env/keys/secrets
-[ ] documentación sincronizada
-```
-
-Después de merge:
-
-```bash
-cd /e/MVP/iRec
-git switch main
-git pull --ff-only origin main
-```
-
-Repetir gate final desde `main`.
-
-## Fase 7 — tag/release
-
-Solo con `main` validado:
-
-```bash
-git tag -a v0.2.0 -m "iRec v0.2.0 — Identity"
-git push origin v0.2.0
-```
-
-Crear GitHub Release con resumen TECH/NONTECH.
-
-## Fase 8 — cleanup
-
-```bash
-git worktree remove ../iRec-worktrees/v0.2.0
-git branch -d integration/v0.2.0
-```
-
-La eliminación de las ramas `feat/*` y `docs/project` se decide después de
-confirmar que el release/tag y el historial remoto están correctos.
+- [ ] Build/typecheck final desde integración.
+- [ ] Changelogs finales.
+- [ ] Merge `integration/v0.2.0` → `main`.
+- [ ] Gate rápido desde `main`.
+- [ ] Tag `v0.2.0`.
+- [ ] Push tag.
+- [ ] GitHub Release.

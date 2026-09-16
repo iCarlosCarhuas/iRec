@@ -51,8 +51,29 @@ export const openApiDocument = createDocument({
   info: {
     title: 'iRec API',
     version: '0.2.0-dev',
-    description:
-      'Contrato HTTP de iRec. Zod es la fuente de verdad. Identity se encuentra en desarrollo.',
+    description: `Contrato HTTP de iRec. Zod es la fuente de verdad y Scalar renderiza esta referencia.
+
+## Quick start local (full-stack Docker)
+
+Primera vez:
+
+\`\`\`powershell
+powershell -ExecutionPolicy Bypass -File .\\scripts\\irec.ps1 setup
+\`\`\`
+
+Levantar iRec completo:
+
+\`\`\`bash
+docker compose up --build -d
+\`\`\`
+
+O usando el wrapper del proyecto:
+
+\`\`\`bash
+pnpm irec:dev
+\`\`\`
+
+Web: http://127.0.0.1:4200 · API: http://127.0.0.1:3000 · Mailpit: http://127.0.0.1:8025`,
   },
   servers: [{ url: '/api', description: 'Entorno actual' }],
   tags: [

@@ -1,17 +1,19 @@
 {
-  "artifact": "iRec documentation",
+  "artifact": "iRec integration candidate",
   "baseline": "v0.1.0",
   "working_version": "v0.2.0",
   "sync_date": "2026-09-16",
+  "integration_branch": "integration/v0.2.0",
   "state": {
     "foundation": "released",
     "identity_backend": "passed",
     "identity_frontend": "passed",
-    "identity_e2e": "pending",
-    "release_v0.2.0": "pending",
     "totp_onboarding": "passed",
     "hyperframes_qa": "passed",
-    "integration_v0.2.0": "pending",
-    "fullstack_docker": "pending"
+    "integration_branch": "pending_git_merge",
+    "fullstack_docker_implementation": "prepared",
+    "fullstack_docker_runtime_gate": "pending",
+    "identity_e2e": "pending",
+    "release_v0.2.0": "pending"
   }
 }

@@ -1,111 +1,133 @@
 # iRec
 
-> PWA de álbumes digitales temáticos para conservar, organizar y compartir recuerdos.
+> PWA para crear, organizar y compartir álbumes digitales temáticos.
 
-## Estado actual
-
-```text
-v0.1.0  Foundation  ✅ publicado en main
-v0.2.0  Identity    🚧 candidato en integración
-```
-
-`main` todavía representa la versión estable `v0.1.0`. El trabajo de `v0.2.0`
-está separado en tres ramas/worktrees y **ninguna de ellas, por sí sola,
-representa el producto completo**:
+## Estado
 
 ```text
-feat/backend   → Identity backend + DB + Redis + Mailpit + contratos
-feat/frontend  → Identity UI + TOTP + recovery + trusted devices + HyperFrames
-docs/project   → documentación, ADRs, changelogs y estado
+release estable      v0.1.0 — Foundation
+release candidate    v0.2.0 — Identity
+rama de integración  integration/v0.2.0
 ```
 
-La siguiente etapa crea un candidato completo:
+`main` conserva la versión estable. El backend, frontend y documentación de
+Identity se desarrollan en ramas separadas y se validan juntos en
+`integration/v0.2.0` antes de llegar a `main`.
+
+## Quick Start — proyecto completo con Docker
+
+La ejecución full-stack no requiere Node ni pnpm instalados en el host. Sí
+requiere Git, Docker Desktop y Docker Compose v2.
+
+Primera vez:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\irec.ps1 setup
+```
+
+Levantar iRec completo:
+
+```bash
+docker compose up --build -d
+```
+
+O, si ya tienes Node/pnpm:
+
+```bash
+pnpm irec:dev
+```
+
+URLs:
+
+| Recurso | URL |
+|---|---|
+| Web | http://127.0.0.1:4200 |
+| API | http://127.0.0.1:3000 |
+| Scalar | http://127.0.0.1:3000/reference |
+| OpenAPI | http://127.0.0.1:3000/openapi.json |
+| Mailpit | http://127.0.0.1:8025 |
+| PostgreSQL | 127.0.0.1:15432 |
+| Redis | 127.0.0.1:6379 |
+
+Estado:
+
+```bash
+docker compose ps
+```
+
+Logs:
+
+```bash
+docker compose logs -f
+```
+
+Detener sin borrar datos:
+
+```bash
+docker compose down
+```
+
+> `docker compose down -v` es destructivo: elimina los volúmenes locales del
+> candidato full-stack.
+
+## Arquitectura local full-stack
 
 ```text
-integration/v0.2.0
+Browser
+  │
+  ▼
+irec-web :4200 (Nginx + Angular PWA)
+  │
+  └── /api ──► irec-api :3000 (NestJS)
+                    │
+                    ├──► irec-postgres :5432
+                    ├──► irec-redis :6379
+                    └──► irec-mailpit :1025
+
+irec-migrate
+  └── Drizzle versionado → PostgreSQL → exit 0
 ```
 
-Ahí se integran las tres ramas, se implementa/valida el arranque full-stack con
-Docker, se ejecuta el E2E de Identity y recién después se propone el merge a
-`main` y el tag `v0.2.0`.
-
-## ¿Qué carpeta uso?
+## Desarrollo por worktrees
 
 ```text
-E:\MVP\iRec                         → main estable
-E:\MVP\iRec-worktrees\backend       → feat/backend
-E:\MVP\iRec-worktrees\frontend      → feat/frontend
-E:\MVP\iRec-worktrees\docs          → docs/project
-E:\MVP\iRec-worktrees\v0.2.0        → integration/v0.2.0 (candidato)
+E:\MVP\iRec                    main
+E:\MVP\iRec-worktrees\backend  feat/backend
+E:\MVP\iRec-worktrees\frontend feat/frontend
+E:\MVP\iRec-worktrees\docs     docs/project
+E:\MVP\iRec-worktrees\v0.2.0   integration/v0.2.0
 ```
 
-Para entender el flujo completo:
+Los worktrees son una técnica de desarrollo, no un requisito para ejecutar el
+producto. Una persona que solo quiere levantar iRec debe usar el clon integrado
+y Docker.
 
-- `WORKTREE-QUICKSTART.txt` — mapa rápido.
-- `WORKTREES.md` — explicación corta de worktrees.
-- `docs/PROJECT-STATE.md` — estado real del release.
-- `docs/TECH/WORKTREES.md` — estrategia detallada.
-- `docs/TECH/INTEGRATION-V020.md` — integración actual de v0.2.0.
-- `docs/TECH/FULLSTACK-DOCKER.md` — ejecución completa con Docker.
-- `docs/TECH/RELEASE-V020-CHECKLIST.md` — checklist hasta el tag.
+## Documentación
 
-## Arquitectura del MVP
+Punto de entrada:
 
 ```text
-Angular PWA
-    │
-    ▼
-NestJS API
-    │
-    ├── PostgreSQL
-    ├── Redis
-    └── Email (Mailpit local / Resend producción)
-
-Próximas fases:
-Cloudflare R2 BYO Storage · IA ThemeManifest · YouTube/Live
+docs/README.md
 ```
 
-### API y documentación
+Arranque:
 
 ```text
-Zod schemas
-   ↓
-zod-openapi
-   ↓
-OpenAPI 3.1
-   ↓
-Scalar
+docs/GETTING-STARTED.md
 ```
 
-Cuando la API está levantada:
+Integración/release:
 
 ```text
-API       http://127.0.0.1:3000
-OpenAPI   http://127.0.0.1:3000/openapi.json
-Scalar    http://127.0.0.1:3000/reference
+docs/TECH/INTEGRATION-V020.md
+docs/TECH/FULLSTACK-DOCKER.md
+docs/TECH/RELEASE-V020-CHECKLIST.md
 ```
 
-Scalar documenta el **contrato HTTP de la API**. La guía para clonar,
-integrar ramas, usar worktrees o levantar Docker vive en el repositorio y no se
-duplica dentro de Scalar.
-
-## Requisitos de desarrollo
-
-- Node.js `>= 24.15.0`
-- pnpm `12.4.1`
-- Git
-- Docker + Docker Compose
-
-## Regla de release
-
-No se desarrolla directamente sobre `main` y no se etiqueta `v0.2.0` hasta
-que el candidato integrado haya pasado:
+API:
 
 ```text
-backend gate
-frontend gate
-HyperFrames QA
-full-stack Docker gate
-E2E Identity
-final gate
+http://127.0.0.1:3000/reference
 ```
+
+Zod define contratos, `zod-openapi` genera OpenAPI 3.1 y Scalar lo renderiza.

@@ -1,114 +1,70 @@
-# Despliegue y ejecución
+# Deployment / ejecución local
 
-## Entornos
+## Alcance actual
 
-```text
-local-development
-local-release-candidate
-staging/test
-production
-```
+`v0.2.0` implementa **full-stack Docker local para integración, E2E y demo**.
+No representa todavía una arquitectura de producción pública.
 
-## Local development — validado
-
-Modo híbrido:
-
-```text
-Angular host
-NestJS host
-irec-postgres Docker
-irec-redis Docker
-irec-mailpit Docker
-```
-
-Infra validada en `feat/backend`:
-
-```text
-irec-postgres  127.0.0.1:15432 -> 5432
-irec-redis     127.0.0.1:6379
-irec-mailpit   127.0.0.1:1025 / 8025
-irec-network
-```
-
-## Local release candidate — decidido, pendiente de implementación
-
-El worktree `integration/v0.2.0` implementará full-stack Docker:
-
-```text
-irec-web
-irec-api
-irec-migrate
-irec-postgres
-irec-redis
-irec-mailpit
-```
-
-Comando objetivo:
+## Modo full-stack
 
 ```bash
 docker compose up --build -d
 ```
 
-Ver `FULLSTACK-DOCKER.md`.
-
-## Producción prevista
-
-- Angular: CDN/edge hosting o imagen web equivalente.
-- NestJS API: contenedor.
-- PostgreSQL administrado.
-- Redis administrado.
-- Email: Resend.
-- Media gateway separado en v0.6.
-- R2 pertenece a cada usuario final.
-
-El compose local no debe interpretarse como topología final de producción.
-
-## Variables sensibles
-
-Nunca versionar:
-
-- `DATABASE_URL` real;
-- `REDIS_URL` real;
-- `APP_ENCRYPTION_KEY`;
-- JWT private key;
-- email credentials;
-- Google OAuth client secret;
-- R2 secret keys;
-- AI provider key.
-
-## JWT keys
-
-Localmente se genera un par RSA. En producción la private key viene de un
-secret manager/KMS y nunca se incluye en una imagen Docker o repositorio.
-
-## Health checks
+Servicios:
 
 ```text
-GET /api/health/live
-GET /api/health/ready
+irec-web       Angular + Nginx
+irec-api       NestJS
+irec-migrate   Drizzle one-shot
+irec-postgres  PostgreSQL 17
+irec-redis     Redis 8
+irec-mailpit   SMTP local
 ```
 
-## Migraciones
+La red interna es `irec-fullstack-network`.
 
-Flujo oficial:
+## Modo híbrido de desarrollo
+
+Se conserva:
 
 ```text
-Drizzle schema
-→ drizzle-kit generate
-→ SQL versionado
-→ drizzle-orm migrator
-→ PostgreSQL
+infra/docker-compose.dev.yml
 ```
 
-Comandos de desarrollo:
+En este modo PostgreSQL/Redis/Mailpit están en Docker, mientras API/Web se
+ejecutan en host con watch/hot reload.
 
-```bash
-pnpm db:generate
-pnpm db:migrate
-pnpm db:apply
+No ejecutar ambos modos al mismo tiempo.
+
+## Variables
+
+Host/híbrido:
+
+```text
+.env
 ```
 
-Para full-stack Docker, el servicio `irec-migrate` ejecutará las migraciones
-versionadas antes de iniciar `irec-api`.
+Full-stack:
 
-`drizzle-kit push` no es el mecanismo oficial.
+```text
+.env.docker
+```
+
+`.env.docker` nunca entra a Git. `.env.docker.example` sí.
+
+## Producción futura
+
+Antes de un despliegue real deberán separarse, entre otros:
+
+- secretos gestionados externamente;
+- TLS y `COOKIE_SECURE=true`;
+- base de datos administrada o persistencia definida;
+- Redis administrado/persistente según estrategia;
+- Resend en lugar de Mailpit;
+- imágenes con estrategia de registry/tagging;
+- observabilidad;
+- backup/restore;
+- política de migraciones y rollback.
+
+Estas tareas no bloquean el gate local de `v0.2.0`.

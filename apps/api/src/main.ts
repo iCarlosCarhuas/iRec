@@ -45,10 +45,10 @@ async function bootstrap(): Promise<void> {
 
   app.enableShutdownHooks();
 
-  await app.listen(port);
-  console.log(`iRec API: http://localhost:${port}`);
-  console.log(`Mailpit:  http://localhost:8025`);
-  console.log(`Scalar:   http://localhost:${port}/reference`);
+  await app.listen(port, '0.0.0.0');
+  console.log(`iRec API: http://127.0.0.1:${port}`);
+  console.log(`Mailpit:  http://127.0.0.1:8025`);
+  console.log(`Scalar:   http://127.0.0.1:${port}/reference`);
 }
 
 void bootstrap();

@@ -2,56 +2,175 @@
 
 ## Estado
 
-**Decisión aceptada para el candidato `v0.2.0`; implementación pendiente.**
+**Implementado en el candidato `integration/v0.2.0`. Gate runtime pendiente.**
 
-El compose actual `infra/docker-compose.dev.yml` levanta únicamente
-dependencias de desarrollo. Se conserva.
+El objetivo es que una persona pueda levantar iRec completo sin conocer la
+separación interna de worktrees.
 
-El candidato integrado añadirá un `compose.yaml` en la raíz para levantar el
-producto completo con un único comando.
-
-## Por qué
-
-Hoy un desarrollador necesita saber qué worktree contiene cada parte y abrir
-varios procesos. Eso es válido para desarrollo, pero no para onboarding,
-E2E o demostración de un release candidate.
-
-La ejecución completa debe independizarse de los worktrees.
-
-## Dos modos oficiales
-
-### Modo 1 — híbrido para desarrollo
-
-```text
-Host:   irec-web / Angular dev server
-Host:   irec-api / NestJS watch
-Docker: PostgreSQL + Redis + Mailpit
-```
-
-Compose:
-
-```text
-infra/docker-compose.dev.yml
-```
-
-### Modo 2 — full-stack para candidato/release local
-
-```text
-Docker: irec-web
-Docker: irec-api
-Docker: irec-migrate
-Docker: irec-postgres
-Docker: irec-redis
-Docker: irec-mailpit
-```
-
-Compose:
+## Archivos
 
 ```text
 compose.yaml
+.dockerignore
+.env.docker.example
+apps/api/Dockerfile
+apps/web/Dockerfile
+apps/web/nginx.conf
+scripts/generate-docker-env.mjs
+scripts/irec.ps1
+scripts/verify-fullstack-docker.ps1
 ```
 
-## Comando objetivo
+## Servicios
+
+```text
+irec-web       Angular production build servido por Nginx
+irec-api       NestJS Identity API
+irec-migrate   Drizzle migrations one-shot
+irec-postgres  PostgreSQL 17
+irec-redis     Redis 8
+irec-mailpit   SMTP/UI local
+```
+
+## Dependencias de arranque
+
+```text
+irec-postgres healthy
+        ↓
+irec-migrate exit 0
+        ↓
+irec-api
+  ├─ requiere Redis healthy
+  └─ requiere Mailpit started
+        ↓
+irec-api healthy
+        ↓
+irec-web
+```
+
+`irec-migrate` ejecuta:
+
+```text
+node dist/database/migrate.js
+```
+
+No usa `drizzle-kit push`.
+
+## Red interna
+
+Red Docker:
+
+```text
+irec-fullstack-network
+```
+
+Dentro de Docker:
+
+```text
+PostgreSQL  irec-postgres:5432
+Redis       irec-redis:6379
+SMTP        irec-mailpit:1025
+API         irec-api:3000
+```
+
+`127.0.0.1` dentro de un contenedor nunca se usa para hablar con otro
+contenedor.
+
+## Puertos host
+
+| Servicio | Host |
+|---|---|
+| Web | `127.0.0.1:4200` |
+| API | `127.0.0.1:3000` |
+| Mailpit SMTP | `127.0.0.1:1025` |
+| Mailpit UI | `127.0.0.1:8025` |
+| PostgreSQL | `127.0.0.1:15432` |
+| Redis | `127.0.0.1:6379` |
+
+## Web
+
+Angular se construye en una imagen Node 24.15.0 y el resultado de producción
+se copia a Nginx.
+
+Nginx:
+
+- sirve SPA/PWA;
+- usa fallback a `index.html`;
+- expone `/healthz`;
+- proxyea `/api/*` hacia `irec-api:3000`.
+
+Por eso el frontend sigue usando rutas relativas `/api` y no necesita una URL
+de backend hardcodeada.
+
+## API
+
+La imagen API:
+
+1. usa Node `24.15.0-alpine`;
+2. activa pnpm `12.4.1` con Corepack;
+3. instala con lockfile congelado;
+4. construye `@irec/contracts`;
+5. construye `@irec/api`;
+6. arranca `node dist/main.js`;
+7. escucha en `0.0.0.0:3000`.
+
+Healthcheck:
+
+```text
+GET /api/health/ready
+```
+
+## Secretos locales
+
+`.env.docker` está ignorado por Git.
+
+Primera vez:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\irec.ps1 setup
+```
+
+El generador crea:
+
+- `APP_ENCRYPTION_KEY` de 32 bytes;
+- clave privada RSA PKCS#8;
+- clave pública RSA SPKI;
+- configuración local Docker.
+
+Regla de seguridad:
+
+> si `.env.docker` ya existe, no se regenera automáticamente.
+
+Para regenerarlo debe hacerse de forma intencional, entendiendo que cambiará
+el material criptográfico local.
+
+## Persistencia
+
+Full-stack usa volúmenes propios:
+
+```text
+irec-fullstack-postgres-data
+irec-fullstack-redis-data
+```
+
+No reutiliza los volúmenes del compose híbrido. Esto evita mezclar el estado
+de desarrollo por ramas con el estado del release candidate.
+
+## Comandos
+
+Bootstrap:
+
+```bash
+pnpm irec:setup
+```
+
+Levantar:
+
+```bash
+pnpm irec:dev
+```
+
+O directamente:
 
 ```bash
 docker compose up --build -d
@@ -60,200 +179,55 @@ docker compose up --build -d
 Estado:
 
 ```bash
-docker compose ps
+pnpm irec:status
 ```
 
 Logs:
 
 ```bash
-docker compose logs -f
+pnpm irec:logs
 ```
 
-Detener sin borrar datos:
+Detener:
 
 ```bash
-docker compose down
+pnpm irec:stop
 ```
 
-Reset destructivo local:
+## Colisión con modo híbrido
+
+`infra/docker-compose.dev.yml` usa contenedores como `irec-postgres` e
+`irec-redis`. Antes de full-stack debe detenerse:
 
 ```bash
-docker compose down -v
+pnpm dev:infra:down
 ```
 
-`down -v` debe documentarse siempre como destructivo porque elimina volúmenes
-locales.
+El wrapper `irec.ps1 up` detecta contenedores iRec pertenecientes a otro
+proyecto Compose y falla con un mensaje explícito en lugar de destruirlos.
 
-## Servicios
+## Gate
 
-### `irec-postgres`
-
-```text
-image     postgres:17-alpine
-internal  5432
-host      15432
-volume    irec-postgres-data
-```
-
-### `irec-redis`
-
-```text
-image     redis:8-alpine
-internal  6379
-host      6379
-volume    irec-redis-data
-```
-
-### `irec-mailpit`
-
-```text
-SMTP      1025
-UI        8025
-```
-
-### `irec-migrate`
-
-Servicio one-shot construido con la imagen de API.
-
-Debe:
-
-1. esperar PostgreSQL healthy;
-2. ejecutar migraciones Drizzle versionadas;
-3. terminar con exit code 0;
-4. bloquear el arranque de API si la migración falla.
-
-No debe ejecutar `drizzle-kit push`.
-
-### `irec-api`
-
-Debe iniciar después de:
-
-```text
-irec-postgres healthy
-irec-redis healthy
-irec-migrate completed successfully
-```
-
-Dentro de Docker, las conexiones cambian de host a service-name:
-
-```text
-DATABASE_URL=postgresql://irec:irec_dev@irec-postgres:5432/irec
-REDIS_URL=redis://irec-redis:6379
-SMTP_HOST=irec-mailpit
-SMTP_PORT=1025
-```
-
-El host continúa accediendo a:
-
-```text
-http://127.0.0.1:3000
-```
-
-### `irec-web`
-
-Recomendación para el candidato: build Angular de producción + servidor web
-ligero (por ejemplo Nginx) que sirva la SPA y proxyee `/api` hacia
-`irec-api:3000`.
-
-Host:
-
-```text
-http://127.0.0.1:4200
-```
-
-Esto evita depender del proxy de `ng serve` para el E2E del candidato.
-
-## Red
-
-Todos los servicios pertenecen a:
-
-```text
-irec-network
-```
-
-Los contenedores se comunican por nombre DNS de servicio; nunca mediante
-`127.0.0.1` entre contenedores.
-
-## Secretos locales
-
-No versionar:
-
-- `APP_ENCRYPTION_KEY`;
-- private key JWT;
-- credenciales reales;
-- tokens de proveedores.
-
-Se puede reutilizar el material generado por `scripts/init-local-env.ps1`,
-pero el compose debe sobreescribir únicamente las URLs internas de DB/Redis/
-SMTP necesarias dentro de Docker.
-
-Regla:
-
-> `docker compose up` nunca debe regenerar automáticamente RSA/AES si ya
-> existen.
-
-## Healthchecks
-
-### API
-
-```text
-GET /api/health/live
-GET /api/health/ready
-```
-
-### Web
-
-Debe responder 200 en `/`.
-
-### Dependencias
-
-Postgres y Redis mantienen sus healthchecks actuales. Mailpit debe ser
-alcanzable antes de ejecutar el E2E de email.
-
-## Puertos oficiales locales
-
-| Recurso | Host |
-|---|---|
-| Web | `127.0.0.1:4200` |
-| API | `127.0.0.1:3000` |
-| Scalar | `127.0.0.1:3000/reference` |
-| OpenAPI | `127.0.0.1:3000/openapi.json` |
-| Mailpit UI | `127.0.0.1:8025` |
-| Mailpit SMTP | `127.0.0.1:1025` |
-| PostgreSQL | `127.0.0.1:15432` |
-| Redis | `127.0.0.1:6379` |
-
-## Gate Docker
-
-El gate pasa cuando desde `integration/v0.2.0` una persona puede hacer:
+Ejecutar:
 
 ```bash
-docker compose up --build -d
+pnpm verify:docker
 ```
 
-sin ejecutar manualmente `pnpm db:apply`, `pnpm dev:api` o `pnpm dev:web`, y
-se cumplen:
+Comprueba:
 
 ```text
-[ ] todos los contenedores esperados están healthy/running
-[ ] migración termina correctamente
-[ ] segundo arranque es idempotente
-[ ] Web responde
-[ ] API live responde
-[ ] API ready responde
-[ ] Scalar carga
-[ ] Mailpit carga
-[ ] registro por email llega a Mailpit
-[ ] persistencia se conserva tras docker compose down/up
+Docker daemon
+compose.yaml
+full-stack build/up
+Web /
+API live
+API ready
+OpenAPI
+Scalar
+Mailpit
+irec-migrate exit 0
 ```
 
-## Lo que Docker no cambia
-
-Docker simplifica la ejecución, pero no reemplaza:
-
-- Git branches/worktrees;
-- OpenAPI/Scalar;
-- gates;
-- E2E;
-- documentación;
-- release/tagging.
+La prueba de persistencia e Identity E2E se ejecutará después del gate técnico
+Docker.

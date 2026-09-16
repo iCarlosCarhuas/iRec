@@ -1,183 +1,122 @@
-# Integración de iRec v0.2.0
+# Integración v0.2.0
 
-## Objetivo
+## Propósito
 
-Construir un candidato reproducible de `v0.2.0 — Identity` sin modificar
-`main` hasta completar todos los gates.
+`integration/v0.2.0` es la única rama donde se considera que existe el
+**producto completo candidato** antes de fusionarlo a `main`.
 
-## Entradas
+## Fuentes actuales
 
-### `feat/backend` — validado
+```text
+main           v0.1.0 estable
+feat/backend   Identity backend
+feat/frontend  Identity frontend
+docs/project   documentación v0.2.0
+```
 
-Responsabilidad observada:
 
-- root/package API en `0.2.0`;
-- NestJS Identity;
-- contratos auth compartidos;
-- Drizzle ORM y migración versionada;
-- PostgreSQL 17;
-- Redis 8;
-- Mailpit;
-- JWT RS256;
-- refresh rotation + reuse detection;
-- TOTP / recovery / trusted devices;
-- OpenAPI 3.1 / Scalar;
-- infraestructura `irec-*`;
-- PostgreSQL host `15432`;
-- scripts de `.env`, DB, naming y gate.
+## Worktree objetivo
 
-### `feat/frontend` — validado
+```text
+E:\MVP\iRec-worktrees\v0.2.0
+```
 
-Responsabilidad observada:
-
-- Angular Identity;
-- rutas auth/verify/TOTP/recovery/security;
-- proxy `/api`;
-- cookies con `withCredentials`;
-- no tokens en localStorage/sessionStorage;
-- trusted devices;
-- TOTP rotation;
-- recovery codes;
-- HyperFrames TOTP inline;
-- gate frontend.
-
-### `docs/project` — fuente documental
-
-Responsabilidad:
-
-- PROJECT-STATE;
-- TECH/NONTECH changelogs;
-- ADRs;
-- evidencia de gates;
-- arquitectura;
-- seguridad;
-- documentación API;
-- runbooks.
-
-## Salida
+Rama:
 
 ```text
 integration/v0.2.0
 ```
 
-Debe ser el primer árbol de esta versión que contenga el sistema completo.
+## Creación manual
 
-## Procedimiento
+Desde `E:\MVP\iRec`:
 
 ```bash
-cd /e/MVP/iRec
-
-git fetch origin --prune
-git switch main
-git pull --ff-only origin main
-
+git fetch origin
 git worktree add -b integration/v0.2.0 ../iRec-worktrees/v0.2.0 main
-cd ../iRec-worktrees/v0.2.0
-
-git merge --no-ff feat/backend \
-  -m "merge(v0.2.0): integrate identity backend"
-
-git merge --no-ff feat/frontend \
-  -m "merge(v0.2.0): integrate identity frontend"
-
-git merge --no-ff docs/project \
-  -m "merge(v0.2.0): integrate project docs"
 ```
 
-## Conflictos esperables
-
-### `packages/contracts`
-
-Backend y frontend consumen los mismos contratos Identity. Validar que la
-versión final exporte todos los schemas/tipos usados por ambos.
-
-### `pnpm-lock.yaml`
-
-Si hay conflicto, resolver a partir del `package.json` integrado y regenerar:
+Después:
 
 ```bash
-pnpm install
+cd /e/MVP/iRec-worktrees/v0.2.0
+git merge --no-ff feat/backend
+git merge --no-ff feat/frontend
+git merge --no-ff docs/project
 ```
 
-No editar el lockfile a mano salvo una corrección conscientemente revisada.
+Cada merge debe terminar limpio antes de continuar con el siguiente.
 
-### documentación
+## Qué hacer con conflictos
 
-La fuente final debe ser `docs/project`, pero cualquier decisión técnica que
-haya evolucionado en backend/frontend debe reconciliarse antes del merge.
+No escoger automáticamente "ours" o "theirs" para todo.
 
-## Verificación inmediata post-merge
-
-```bash
-pnpm install
-pnpm typecheck
-pnpm openapi:check
-pnpm build
-pnpm db:diagnose
-```
-
-Infra:
-
-```bash
-pnpm dev:infra
-pnpm dev:infra:ps
-```
-
-Backend:
-
-```bash
-powershell.exe -ExecutionPolicy Bypass -File ./scripts/ensure-api.ps1 -StartIfMissing
-```
-
-Frontend:
-
-```bash
-pnpm dev:web
-```
-
-Checks manuales:
+Principio:
 
 ```text
-http://127.0.0.1:4200
-http://127.0.0.1:3000/api/health/live
-http://127.0.0.1:3000/api/health/ready
-http://127.0.0.1:3000/reference
-http://127.0.0.1:8025
+backend code      → preservar feat/backend
+frontend code     → preservar feat/frontend
+docs              → preservar docs/project
+shared contracts  → combinar ambos cambios
+package/lockfile  → representar la suma backend + frontend
 ```
 
-## Después de integrar: full-stack Docker
+En particular `pnpm-lock.yaml` debe contener las dependencias Identity del
+backend y `@irec/contracts` en el importer del frontend.
 
-El candidato integrado implementará un compose raíz para que la ejecución
-completa no dependa de conocer los worktrees.
-
-Objetivo:
+Después de resolver:
 
 ```bash
-docker compose up --build -d
+git add .
+git commit
 ```
 
-Ver `FULLSTACK-DOCKER.md`.
+## Docker/DX sobre integración
 
-## Gates antes de main
+Después de los tres merges se aplica el bloque full-stack:
 
 ```text
-[ ] working tree limpio
-[ ] pnpm install
-[ ] typecheck
-[ ] OpenAPI 3.1
-[ ] build Angular
-[ ] build NestJS
-[ ] DB migration idempotente
-[ ] full-stack Docker smoke
-[ ] Scalar accesible
-[ ] Mailpit accesible
-[ ] E2E Identity completo
-[ ] changelogs actualizados
-[ ] PROJECT-STATE actualizado
+compose.yaml
+Dockerfiles
+Nginx
+.env.docker generator
+irec.ps1
+Docker gate
+Scalar Quick Start
 ```
 
-## Política de main
+Este bloque no debe añadirse directamente a `main` antes de pasar sus gates.
 
-No hacer merge a `main` por el simple hecho de que las tres ramas hayan sido
-integradas. `integration/v0.2.0` es un release candidate y puede recibir fixes
-específicos de integración hasta pasar el gate final.
+## Secuencia completa
+
+```text
+main v0.1.0
+   │
+   ├─ merge feat/backend
+   ├─ merge feat/frontend
+   ├─ merge docs/project
+   ▼
+integration/v0.2.0
+   │
+   ├─ full-stack Docker
+   ├─ static/build gates
+   ├─ Identity E2E
+   ├─ release checklist
+   ▼
+main
+   ▼
+tag v0.2.0
+```
+
+## Regla para futuras versiones
+
+Repetir el patrón:
+
+```text
+integration/v0.3.0
+integration/v0.4.0
+...
+```
+
+La rama `integration/*` es temporal por versión; `main` conserva únicamente
+estados que ya pasaron integración.

@@ -83,3 +83,20 @@ Funciona para desarrollo, pero complica onboarding, E2E y reproducción.
 
 Pierde semántica de Git, puede sobreescribir cambios de otra rama y hace muy
 difícil auditar el release.
+
+## Implementación v0.2.0
+
+La decisión se materializa mediante:
+
+```text
+compose.yaml
+apps/api/Dockerfile
+apps/web/Dockerfile
+apps/web/nginx.conf
+scripts/generate-docker-env.mjs
+scripts/irec.ps1
+scripts/verify-fullstack-docker.ps1
+```
+
+El código está preparado en el candidato; la aceptación definitiva del ADR
+para release depende de pasar el gate Docker runtime y el E2E Identity.

@@ -1,12 +1,13 @@
-# iRec Infra — entorno local
+# iRec Infra — entorno local híbrido
 
-Todos los recursos integrados siguen la convención:
+Este directorio contiene únicamente la infraestructura usada cuando API/Web se
+ejecutan en el host con hot reload.
 
 ```text
-irec-<contexto>
+infra/docker-compose.dev.yml
 ```
 
-## Recursos
+Recursos:
 
 | Recurso | Nombre | Puerto host |
 |---|---|---:|
@@ -18,16 +19,7 @@ irec-<contexto>
 | PostgreSQL volume | `irec-postgres-data` | — |
 | Redis volume | `irec-redis-data` | — |
 
-PostgreSQL conserva `5432` dentro del contenedor, pero iRec publica `15432`
-en Windows para evitar colisiones con instalaciones locales de PostgreSQL.
-
-La URL local oficial es:
-
-```text
-postgresql://irec:irec_dev@127.0.0.1:15432/irec
-```
-
-## Uso diario
+Uso:
 
 ```bash
 pnpm dev:infra
@@ -36,15 +28,26 @@ pnpm dev:infra:logs
 pnpm dev:infra:down
 ```
 
-`pnpm dev:infra` usa `docker compose up -d --wait`, por lo que espera los
-healthchecks antes de devolver el control.
+PostgreSQL host:
 
-## PostgreSQL desde el contenedor
-
-```bash
-docker compose -f infra/docker-compose.dev.yml exec irec-postgres \
-  pg_isready -U irec -d irec
+```text
+postgresql://irec:irec_dev@127.0.0.1:15432/irec
 ```
 
-Mailpit es exclusivamente local. Producción utilizará el proveedor de correo
-configurado para iRec.
+## No confundir con full-stack
+
+El release candidate completo usa:
+
+```text
+compose.yaml
+```
+
+en la raíz y levanta también `irec-api`, `irec-web` e `irec-migrate`.
+
+No ejecutar ambos compose al mismo tiempo. Antes de pasar a full-stack:
+
+```bash
+pnpm dev:infra:down
+```
+
+Ver `docs/TECH/FULLSTACK-DOCKER.md`.

@@ -1,120 +1,79 @@
-# Estrategia de pruebas
+# Testing y gates
 
-## Gate real v0.2.0 — backend
-
-El gate backend ejecuta:
+## Gates ya aprobados
 
 ```text
-pnpm install
-pnpm dev:infra
-pnpm db:diagnose
-pnpm typecheck
-pnpm openapi:check
-pnpm build
-pnpm db:apply
-smoke checks
+Identity backend       PASSED
+Identity frontend      PASSED
+TOTP HyperFrames QA    PASSED
 ```
 
-Resultado validado el 2026-09-15:
+## Gate actual — full-stack Docker
 
-```text
-iRec v0.2.0 IDENTITY BACKEND PASSED
+En `integration/v0.2.0`:
+
+```bash
+pnpm verify:docker
 ```
 
-## Cobertura del gate
+Equivalente directo:
 
-- Docker services healthy;
-- PostgreSQL readiness;
-- consulta DB;
-- existencia de tablas;
-- TypeScript web/contracts/api;
-- OpenAPI 3.1;
-- Angular build;
-- NestJS build;
-- migraciones;
-- `/api/health/live`;
-- `/api/health/ready`;
-- `/openapi.json`;
-- `/reference`;
-- Mailpit UI.
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\verify-fullstack-docker.ps1
+```
 
-## E2E Identity pendiente
-
-Debe cubrir:
+Comprueba:
 
 ```text
-email
-→ verificación
-→ QR TOTP
-→ confirmación
-→ recovery codes
+Docker daemon
+.env.docker / compose
+build API/Web
+PostgreSQL healthy
+Redis healthy
+migrate exit 0
+API live
+API ready
+OpenAPI
+Scalar
+Web
+Mailpit
+```
+
+## Gate siguiente — Identity E2E
+
+Después del gate Docker:
+
+```text
+registro por email
+→ Mailpit
+→ verify email
+→ TOTP enroll
+→ TOTP confirm
+→ 10 recovery codes
 → logout
-→ login
+→ login email + TOTP
 → remember device
-→ session restore / refresh rotation
-→ revoke trusted device
-→ recovery por email
-→ recovery code
-→ rotate TOTP
+→ session restore
+→ trusted devices
+→ recovery email/code
+→ TOTP rotation
 → TOTP anterior inválido
 ```
 
-Casos de seguridad:
+## Persistencia
 
-- TOTP replay;
-- brute force/rate limit;
-- recovery code reutilizado;
-- refresh token reutilizado;
-- refresh family revocada;
-- JWT expirado/revocado;
-- trusted device revocado/expirado;
-- anti-enumeración.
-
-## Versiones posteriores
-
-### Unit
-- schemas Zod;
-- permisos;
-- ThemeManifest;
-- mappers.
-
-### Integration
-- R2;
-- YouTube OAuth;
-- presigned URLs;
-- media gateway.
-
-## Definition of Done
-
-Una historia no se cierra sin:
-- tests/gate relevantes;
-- OpenAPI actualizado si cambia API;
-- changelog;
-- documentación;
-- migración versionada si cambia DB.
-
-## Gate de integración por release
-
-A partir de `v0.2.0`, los gates aislados de backend/frontend son necesarios
-pero no suficientes. El E2E final se ejecuta desde `integration/vX.Y.Z`.
-
-Secuencia para v0.2.0:
+Antes del release también debe comprobarse:
 
 ```text
-backend gate       ✅
-frontend gate      ✅
-HyperFrames QA     ✅
-integration tree   ⏳
-full-stack Docker  ⏳
-E2E Identity       ⏳
-final main gate    ⏳
+docker compose down
+→ docker compose up -d
+→ usuario/datos locales siguen presentes
 ```
 
-El Docker gate debe demostrar que un clon/candidato completo puede levantarse
-sin conocer la distribución interna de worktrees.
+`docker compose down -v` no forma parte de una prueba de persistencia porque
+elimina los volúmenes deliberadamente.
 
-Ver:
+## Gate de release
 
-- `INTEGRATION-V020.md`
-- `FULLSTACK-DOCKER.md`
-- `RELEASE-V020-CHECKLIST.md`
+`main` solo recibe `integration/v0.2.0` cuando Docker + E2E + builds/typechecks
+están aprobados.
