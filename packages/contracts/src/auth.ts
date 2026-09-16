@@ -118,12 +118,26 @@ export const SuccessResponseSchema = z.object({
 
 export type EmailStartRequest = z.infer<typeof EmailStartRequestSchema>;
 export type EmailVerifyRequest = z.infer<typeof EmailVerifyRequestSchema>;
+export type EmailVerifyResponse = z.infer<typeof EmailVerifyResponseSchema>;
+export type GenericAcceptedResponse = z.infer<typeof GenericAcceptedResponseSchema>;
+
+export type TotpEnrollResponse = z.infer<typeof TotpEnrollResponseSchema>;
 export type TotpConfirmRequest = z.infer<typeof TotpConfirmRequestSchema>;
+
 export type LoginRequest = z.infer<typeof LoginRequestSchema>;
+
 export type RecoveryEmailRequest = z.infer<typeof RecoveryEmailRequestSchema>;
 export type RecoveryEmailVerifyRequest = z.infer<typeof RecoveryEmailVerifyRequestSchema>;
 export type RecoveryCodeRequest = z.infer<typeof RecoveryCodeRequestSchema>;
+export type RecoveryReadyResponse = z.infer<typeof RecoveryReadyResponseSchema>;
+export type RecoveryCodesResponse = z.infer<typeof RecoveryCodesResponseSchema>;
+
 export type TotpRotateRequest = z.infer<typeof TotpRotateRequestSchema>;
 export type TotpRotateConfirmRequest = z.infer<typeof TotpRotateConfirmRequestSchema>;
+
 export type SessionResponse = z.infer<typeof SessionResponseSchema>;
 export type SessionUser = z.infer<typeof SessionUserSchema>;
+
+export type TrustedDevice = z.infer<typeof TrustedDeviceSchema>;
+export type TrustedDevicesResponse = z.infer<typeof TrustedDevicesResponseSchema>;
+export type SuccessResponse = z.infer<typeof SuccessResponseSchema>;
