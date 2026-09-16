@@ -1,161 +1,93 @@
 # OpenAPI con Zod + Scalar
 
-## Objetivo
-
-La documentación de API será ejecutable y sincronizada con la validación real.
-
-## Dependencias previstas
-
-```bash
-pnpm add zod zod-openapi
-pnpm add @scalar/nestjs-api-reference
-```
-
-`zod-openapi` actual utiliza Zod 4 y puede generar OpenAPI 3.1.
-
-## Organización backend
+## Qué hace cada pieza
 
 ```text
-apps/api/src/
-├─ contracts/
-│  ├─ auth.schemas.ts
-│  ├─ album.schemas.ts
-│  ├─ storage.schemas.ts
-│  ├─ asset.schemas.ts
-│  ├─ theme.schemas.ts
-│  └─ youtube.schemas.ts
-├─ openapi/
-│  ├─ document.ts
-│  └─ scalar.ts
-└─ main.ts
+Zod schemas
+   ↓ validación + metadata de contrato
+zod-openapi
+   ↓ generación
+OpenAPI 3.1
+   ↓ render
+Scalar
 ```
 
-## Ejemplo de schema
+### Zod
 
-```ts
-import * as z from 'zod';
-import 'zod-openapi';
+Fuente de verdad de validación y estructuras request/response compartidas.
 
-export const AlbumId = z
-  .uuid()
-  .meta({
-    id: 'AlbumId',
-    description: 'Identificador único del álbum',
-    example: '0199f13c-4f11-7f30-a0f2-3b6ce5f0e123',
-  });
+### OpenAPI
 
-export const CreateAlbumRequest = z
-  .object({
-    title: z.string().trim().min(1).max(120),
-    description: z.string().trim().max(1000).optional(),
-    visibility: z.enum(['PUBLIC', 'PRIVATE']),
-    storageConnectionId: z.uuid(),
-  })
-  .meta({ id: 'CreateAlbumRequest' });
-```
+Documento HTTP generado. iRec no mantiene un `openapi.yaml` manual paralelo.
 
-## Documento
+### Scalar
 
-```ts
-import { createDocument } from 'zod-openapi';
-
-export const openApiDocument = createDocument({
-  openapi: '3.1.0',
-  info: {
-    title: 'iRec API',
-    version: process.env.APP_VERSION ?? '0.1.0',
-    description: 'API del álbum digital iRec',
-  },
-  servers: [
-    { url: '/api', description: 'Current environment' },
-  ],
-  paths: {
-    // Cada módulo registra operaciones usando sus Zod schemas.
-  },
-  components: {
-    securitySchemes: {
-      sessionCookie: {
-        type: 'apiKey',
-        in: 'cookie',
-        name: 'irec_session',
-      },
-    },
-  },
-});
-```
-
-## Endpoints de documentación
-
-Backend debe exponer:
+Interfaz visual/interactiva del OpenAPI.
 
 ```text
 GET /openapi.json
 GET /reference
 ```
 
-`/openapi.json` devuelve el documento generado.
+Cuando API está en `3000`:
 
-Scalar consume ese endpoint:
-
-```ts
-import { apiReference } from '@scalar/nestjs-api-reference';
-
-app.use(
-  '/reference',
-  apiReference({
-    url: '/openapi.json',
-    theme: 'default',
-  }),
-);
+```text
+http://127.0.0.1:3000/openapi.json
+http://127.0.0.1:3000/reference
 ```
+
+## Qué NO debe vivir en Scalar
+
+La guía completa de:
+
+- clonado;
+- worktrees;
+- estrategia de ramas;
+- Docker;
+- release;
+- troubleshooting de Git;
+
+debe permanecer en la documentación del repositorio.
+
+Scalar es documentación de API, no el manual operativo completo del proyecto.
+
+## Quick Start dentro de Scalar
+
+Después de implementar el compose full-stack, `info.description` puede incluir
+un resumen corto como:
+
+```text
+iRec local quick start:
+  docker compose up --build -d
+
+Web:     http://127.0.0.1:4200
+Scalar:  http://127.0.0.1:3000/reference
+Mailpit: http://127.0.0.1:8025
+```
+
+No debe añadirse antes de que ese comando exista y pase su gate.
+
+## Estado v0.2.0
+
+El backend validado genera OpenAPI `3.1.0` con `18 paths` para Identity + Health.
+
+En desarrollo la metadata reporta:
+
+```text
+version: 0.2.0-dev
+```
+
+Antes del tag debe pasar a `0.2.0`.
 
 ## Reglas contract-first
 
-1. Request body/query/path/header tienen schema Zod.
-2. Response relevante tiene schema.
+1. Request body/query/path/header tienen schema Zod cuando corresponde.
+2. Responses relevantes tienen schema.
 3. Cada operación tiene `operationId`.
 4. Cada operación tiene tags.
-5. Errores comunes usan schemas reutilizables.
+5. Errores comunes usan Problem Details.
 6. No documentar secretos reales en ejemplos.
-7. No crear DTO de clase paralelo si no aporta valor.
-8. OpenAPI generado se valida en CI.
-9. Breaking change de contrato obliga revisión SemVer.
-10. Scalar nunca es fuente de verdad: es renderer del OpenAPI.
-
-## Tags previstos
-
-- Auth
-- Users
-- Albums
-- Storage
-- Assets
-- Moderation
-- Themes
-- YouTube
-- Live
-- Health
-
-## Errores
-
-Formato unificado:
-
-```json
-{
-  "type": "https://irec.app/problems/validation-error",
-  "title": "Validation error",
-  "status": 422,
-  "detail": "The request contains invalid fields",
-  "requestId": "..."
-}
-```
-
-Se recomienda RFC 9457 Problem Details.
-
-## Seguridad de documentación
-
-En producción:
-
-- `/openapi.json` puede ser público si no revela topología sensible;
-- Scalar no debe contener tokens por defecto;
-- habilitar autorización interactiva solo donde resulte seguro;
-- jamás precargar credenciales.
+7. No duplicar DTO/schema sin necesidad.
+8. OpenAPI generado se valida en gate/CI.
+9. Breaking changes requieren revisión SemVer.
+10. Scalar nunca es fuente de verdad; es renderer del OpenAPI.

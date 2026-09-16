@@ -92,3 +92,29 @@ Una historia no se cierra sin:
 - changelog;
 - documentación;
 - migración versionada si cambia DB.
+
+## Gate de integración por release
+
+A partir de `v0.2.0`, los gates aislados de backend/frontend son necesarios
+pero no suficientes. El E2E final se ejecuta desde `integration/vX.Y.Z`.
+
+Secuencia para v0.2.0:
+
+```text
+backend gate       ✅
+frontend gate      ✅
+HyperFrames QA     ✅
+integration tree   ⏳
+full-stack Docker  ⏳
+E2E Identity       ⏳
+final main gate    ⏳
+```
+
+El Docker gate debe demostrar que un clon/candidato completo puede levantarse
+sin conocer la distribución interna de worktrees.
+
+Ver:
+
+- `INTEGRATION-V020.md`
+- `FULLSTACK-DOCKER.md`
+- `RELEASE-V020-CHECKLIST.md`

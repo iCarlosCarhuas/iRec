@@ -4,33 +4,33 @@
 
 Validado el 2026-09-15.
 
-- contratos Zod;
-- OpenAPI/Scalar;
-- PostgreSQL + Drizzle;
-- migraciones versionadas;
-- Redis;
-- Mailpit/Resend adapter;
-- JWT RS256;
-- refresh rotation/reuse detection;
-- TOTP;
-- bcrypt recovery codes;
+## Gate 2 — frontend ✅ PASSED
+
+Validado el 2026-09-15.
+
+Incluye:
+
+- auth/login;
+- email verify;
+- TOTP setup;
+- recovery codes;
+- recovery;
+- security settings;
 - trusted devices;
-- rate limiting;
-- backend verification script;
-- naming `irec-*`.
+- TOTP rotation;
+- HyperFrames onboarding inline.
 
-Evidencia: [V020-BACKEND-GATE.md](V020-BACKEND-GATE.md).
+## Gate 2.1 — HyperFrames ✅ PASSED
 
-## Gate 2 — frontend ⏳
+```text
+Runtime   OK
+Layout    OK
+Motion    OK
+Contrast  73/73 WCAG AA
+```
 
-- `/auth`;
-- `/auth/verify-email`;
-- `/auth/totp/setup`;
-- `/auth/recovery-codes`;
-- `/auth/recover`;
-- `/settings/security`;
-- integración de sesión/cookies;
-- UX de errores.
+La advertencia `timeline_track_too_dense` queda aceptada como deuda menor de
+mantenibilidad mientras el tutorial siga siendo pequeño.
 
 ## Gate 3 — E2E ⏳
 
@@ -52,10 +52,11 @@ email
 
 ## Gate 4 — release ⏳
 
-1. merge backend;
-2. merge frontend;
-3. merge docs;
-4. gate desde `main`;
-5. changelogs finales;
-6. tag `v0.2.0`;
-7. GitHub release.
+1. completar E2E;
+2. merge backend;
+3. merge frontend;
+4. merge docs;
+5. gate desde `main`;
+6. changelogs finales;
+7. tag `v0.2.0`;
+8. GitHub release.

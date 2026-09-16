@@ -26,14 +26,16 @@
 - OpenAPI;
 - backend gate.
 
-### Frontend ⏳
+### Frontend ✅
 - `/auth`;
 - verificación de email;
 - TOTP setup;
 - recovery codes;
 - recovery;
 - security settings;
-- integración de cookies/sesión.
+- integración de cookies/sesión;
+- onboarding TOTP;
+- tutorial HyperFrames inline.
 
 ### E2E ⏳
 - alta completa;

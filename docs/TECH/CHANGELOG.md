@@ -7,6 +7,11 @@ Cambios de arquitectura, implementación, infraestructura, API, seguridad y depe
 ### v0.2.0 — Identity (en integración)
 
 #### Added
+- Estrategia `integration/vX.Y.Z` para ensamblar release candidates sin usar `main` como área de integración.
+- Worktree de release `E:\MVP\iRec-worktrees\v0.2.0`.
+- Full-stack Docker definido como gate reproducible de onboarding/E2E.
+- ADR-0012 para rama de integración + Docker completo local.
+- Checklist de release `v0.2.0` y runbook de integración.
 - Backend Identity implementado con NestJS.
 - PostgreSQL + Drizzle ORM para identidad persistente.
 - Redis para auth flows, refresh families, revocación y rate limiting.
@@ -28,6 +33,16 @@ Cambios de arquitectura, implementación, infraestructura, API, seguridad y depe
 - Gate `verify-identity-backend.ps1`.
 - Convención global `irec-<contexto>` para recursos técnicos.
 - PostgreSQL local aislado en host `15432`.
+
+- Frontend Identity Angular validado.
+- Rutas Identity lazy-loaded.
+- Auth store sin JWT/refresh en localStorage.
+- Proxy local `/api -> 127.0.0.1:3000`.
+- Onboarding TOTP integrado en `/auth/totp/setup`.
+- HyperFrames tutorial inline.
+- HyperFrames QA con contraste 73/73 WCAG AA.
+- Host Angular local fijado a `127.0.0.1:4200`.
+- Helper de detección de API existente para evitar `EADDRINUSE`.
 
 #### Changed
 - Se reemplazó la propuesta inicial de sesión opaca principal por JWT RS256
@@ -59,12 +74,16 @@ Cambios de arquitectura, implementación, infraestructura, API, seguridad y depe
 
 #### Validation
 - Gate backend v0.2.0 aprobado el 2026-09-15.
+- Gate frontend v0.2.0 aprobado el 2026-09-15.
+- HyperFrames TOTP QA aprobado el 2026-09-15.
 - Typecheck web/contracts/api: OK.
 - OpenAPI 3.1: OK, 18 paths.
 - Angular build: OK.
 - NestJS build: OK.
 - DB migrations: OK.
 - Smoke checks: OK.
+- HyperFrames runtime/layout/motion: OK.
+- HyperFrames contrast: 73/73 WCAG AA.
 
 ## [0.1.0] - 2026-09-14
 

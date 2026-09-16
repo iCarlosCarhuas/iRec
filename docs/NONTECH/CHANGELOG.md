@@ -17,6 +17,10 @@ Cambios visibles para usuarios, producto, UX o alcance.
 - Diez recovery codes de un solo uso tras activar/rotar TOTP.
 - Pantalla de seguridad prevista para listar y revocar dispositivos confiables.
 - Rotación de TOTP que invalida el secreto anterior.
+- Guía paso a paso para instalar y configurar una app TOTP.
+- Tutorial animado HyperFrames integrado dentro de `/auth/totp/setup`.
+- Camino principal documentado con Google Authenticator.
+- Alternativa documentada con Microsoft Authenticator.
 
 #### Changed
 - El usuario no gestiona contraseña tradicional.
@@ -26,7 +30,8 @@ Cambios visibles para usuarios, producto, UX o alcance.
 
 #### Status
 - Backend: terminado y validado.
-- Frontend: pendiente.
+- Frontend: terminado y validado.
+- Onboarding TOTP + HyperFrames: terminado y validado.
 - E2E: pendiente.
 - `v0.2.0`: todavía no liberado.
 

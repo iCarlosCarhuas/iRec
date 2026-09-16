@@ -1,68 +1,72 @@
 # Plan Frontend
 
-## Estado actual
+## v0.2.0 Identity — estado
 
-`v0.2.0 Identity` backend ya está listo. El siguiente gate es frontend.
+**Gate frontend: ✅ PASSED**
 
-## Gate Identity frontend
-
-Pantallas/rutas:
+## Rutas implementadas
 
 ```text
-/auth
-/auth/verify-email
-/auth/totp/setup
-/auth/recovery-codes
-/auth/recover
-/settings/security
+/
+├─ /auth
+├─ /auth/verify-email
+├─ /auth/totp/setup
+├─ /auth/recovery-codes
+├─ /auth/recover
+└─ /settings/security
 ```
 
-## Reglas Identity
+## Implementado
 
-- no guardar access/refresh en localStorage;
-- usar cookies HttpOnly gestionadas por backend;
-- requests con credentials;
-- restaurar estado mediante `/api/auth/session`;
-- recovery codes deben mostrarse claramente una sola vez;
-- permitir copiar/descargar recovery codes;
-- `rememberDevice` es explícito;
-- estados de error no deben facilitar enumeración;
-- settings permite listar/revocar trusted devices;
-- rotación TOTP debe advertir que revoca el anterior.
+- login email + TOTP;
+- alta por email;
+- verificación de correo;
+- enrolamiento TOTP;
+- recovery codes;
+- recovery por email;
+- recovery por código;
+- trusted devices;
+- revoke individual/all;
+- rotación TOTP;
+- restauración de sesión;
+- cookies HttpOnly gestionadas por backend;
+- no uso de localStorage para access/refresh;
+- proxy local `/api -> 127.0.0.1:3000`.
 
-## Estructura
+## TOTP onboarding
+
+En `/auth/totp/setup`:
 
 ```text
-app/
-├─ core/
-│  ├─ auth/
-│  ├─ api/
-│  ├─ guards/
-│  └─ storage/
-├─ features/
-│  ├─ auth/
-│  ├─ dashboard/
-│  ├─ albums/
-│  ├─ uploads/
-│  ├─ moderation/
-│  ├─ themes/
-│  ├─ youtube/
-│  └─ live/
-└─ shared/
+instalar autenticador
+→ +
+→ escanear QR
+→ código de 6 dígitos
+→ Activar TOTP
+→ recovery codes
 ```
 
-## PWA
+Camino principal:
+- Google Authenticator.
 
-- installable;
-- app shell cacheable;
-- no cachear secretos;
-- estados offline explícitos.
+Alternativa:
+- Microsoft Authenticator.
 
-## Contrato
+## HyperFrames
 
-Frontend no inventa DTOs divergentes.
-Debe usar `@irec/contracts` y/o contrato generado desde OpenAPI.
+Tutorial animado embebido dentro de la misma ruta.
 
-## Después de Identity
+QA:
 
-Dashboard/Album Core inicia en `v0.3.0`, no antes de cerrar `v0.2.0`.
+```text
+Runtime   OK
+Layout    OK
+Motion    OK
+Contrast  73/73 WCAG AA
+```
+
+## Gate siguiente
+
+Frontend queda cerrado para esta fase.
+
+Lo siguiente es **E2E Identity**, no Album Core.

@@ -1,165 +1,205 @@
 # Estado actual del proyecto iRec
 
-**Fecha de corte:** 2026-09-15  
-**Release estable:** `v0.1.0`  
+**Fecha de corte:** 2026-09-16  
+**Release estable:** `v0.1.0 — Foundation`  
 **Release en construcción:** `v0.2.0 — Identity`
 
-Este documento es el punto de reentrada cuando se retoma el proyecto después
-de una pausa. Describe qué está realmente validado y qué sigue pendiente.
+Este documento es el punto de reentrada operativo.
 
-## Git / worktrees
+## 1. Qué representa cada rama hoy
+
+```text
+main
+└─ v0.1.0 Foundation estable
+
+feat/backend
+└─ v0.2.0 Identity backend validado
+
+feat/frontend
+└─ v0.2.0 Identity frontend validado
+
+docs/project
+└─ documentación v0.2.0 sincronizada
+```
+
+Las tres ramas de trabajo están intencionalmente fuera de `main`. Ninguna de
+ellas contiene por sí sola el candidato completo de `v0.2.0`.
+
+## 2. Worktrees actuales
 
 ```text
 E:\MVP\iRec
 └─ main
-   └─ v0.1.0 estable
 
 E:\MVP\iRec-worktrees\backend
 └─ feat/backend
-   └─ v0.2.0 Identity backend validado
 
 E:\MVP\iRec-worktrees\frontend
 └─ feat/frontend
-   └─ Identity frontend pendiente
 
 E:\MVP\iRec-worktrees\docs
 └─ docs/project
-   └─ documentación v0.2.0 en sincronización
 ```
 
-No hacer desarrollo de feature directamente sobre `main`.
+## 3. Próximo worktree
 
-## Gate backend v0.2.0
+Se crea antes del E2E final:
 
-El gate real pasó con:
+```text
+E:\MVP\iRec-worktrees\v0.2.0
+└─ integration/v0.2.0
+```
+
+Su función es producir el primer árbol que contenga simultáneamente backend,
+frontend y documentación de `v0.2.0` sin alterar `main`.
+
+## 4. Estado por gate
+
+| Gate | Estado |
+|---|---|
+| Foundation `v0.1.0` | ✅ RELEASED |
+| Backend Identity | ✅ PASSED |
+| Frontend Identity | ✅ PASSED |
+| TOTP onboarding | ✅ PASSED |
+| HyperFrames QA | ✅ PASSED |
+| Crear `integration/v0.2.0` | ⏳ Pendiente |
+| Full-stack Docker | ⏳ Pendiente |
+| E2E funcional Identity | ⏳ Pendiente |
+| Gate final integrado | ⏳ Pendiente |
+| Merge a `main` | ⏳ Pendiente |
+| Tag `v0.2.0` | ⏳ Pendiente |
+
+## 5. Backend validado
+
+`feat/backend` contiene, entre otros:
+
+- NestJS Identity;
+- PostgreSQL 17 + Drizzle ORM;
+- migraciones SQL versionadas;
+- Redis;
+- Mailpit;
+- JWT RS256;
+- refresh token opaco rotativo;
+- reuse detection;
+- TOTP;
+- recovery codes;
+- trusted devices;
+- OpenAPI 3.1;
+- Scalar;
+- naming `irec-*`;
+- PostgreSQL host `15432`;
+- scripts de diagnóstico, bootstrap de `.env` y gate backend.
+
+Resultado registrado:
 
 ```text
 iRec v0.2.0 IDENTITY BACKEND PASSED
+OpenAPI 3.1 — 18 paths
 ```
 
-Validó:
+## 6. Frontend validado
 
-- `pnpm install`;
-- `irec-infra` healthy;
-- PostgreSQL;
-- Redis;
-- Mailpit;
-- cinco tablas de Identity;
-- TypeScript de web/contracts/api;
-- OpenAPI 3.1;
-- 18 paths;
-- Angular build;
-- NestJS build;
-- generación de migraciones;
-- aplicación idempotente de migraciones;
-- health/OpenAPI/Scalar/Mailpit smoke checks.
-
-## Infraestructura local validada
+`feat/frontend` contiene:
 
 ```text
-irec-infra
-├─ irec-postgres
-├─ irec-redis
-├─ irec-mailpit
-└─ irec-network
+/
+/auth
+/auth/verify-email
+/auth/totp/setup
+/auth/recovery-codes
+/auth/recover
+/settings/security
 ```
 
-Persistencia:
+Incluye:
+
+- sesión restaurable con cookies HttpOnly;
+- email + TOTP;
+- recovery por correo y recovery code;
+- trusted devices;
+- revocación;
+- rotación de TOTP;
+- recovery codes;
+- proxy `/api -> 127.0.0.1:3000`;
+- onboarding TOTP;
+- tutorial HyperFrames inline.
+
+Resultado registrado:
 
 ```text
-irec-postgres-data
-irec-redis-data
+iRec v0.2.0 IDENTITY FRONTEND PASSED
+HyperFrames: 73/73 contrast checks WCAG AA
 ```
 
-Puertos:
+## 7. Aislamiento esperado entre ramas
 
-| Servicio | Host | Contenedor |
-|---|---:|---:|
-| PostgreSQL | `15432` | `5432` |
-| Redis | `6379` | `6379` |
-| Mailpit SMTP | `1025` | `1025` |
-| Mailpit UI | `8025` | `8025` |
-| API | `3000` | — |
-| Angular | `4200` | — |
+Es normal encontrar archivos aparentemente “viejos” en un worktree de otra
+responsabilidad. Por ejemplo, `feat/frontend` no incorpora todavía la nueva
+infraestructura Docker de `feat/backend`, y `docs/project` no debe usarse como
+árbol ejecutable completo.
 
-PostgreSQL usa `15432` en host para evitar colisiones con instalaciones locales.
+Eso no se corrige copiando carpetas entre worktrees. Se resuelve mediante Git
+merge en `integration/v0.2.0`.
 
-## Esquema Identity existente
+## 8. Estrategia de ejecución
 
-PostgreSQL contiene:
+### Modo A — desarrollo híbrido actual
 
 ```text
-users
-email_tokens
-totp_credentials
-recovery_codes
-trusted_devices
+Docker     → PostgreSQL + Redis + Mailpit
+Host       → NestJS API
+Host       → Angular dev server
 ```
 
-Las migraciones están versionadas bajo:
+### Modo B — candidato/release local
+
+Objetivo de `integration/v0.2.0`:
 
 ```text
-apps/api/drizzle/
+docker compose up --build -d
 ```
 
-`drizzle-kit push` dejó de ser el flujo oficial.
-
-## Seguridad vigente
+para levantar:
 
 ```text
-email verificado + TOTP
+irec-web
+irec-api
+irec-migrate
+irec-postgres
+irec-redis
+irec-mailpit
+```
+
+El full-stack Docker todavía es un gate pendiente; no se documenta como
+implementado hasta que exista y sea probado.
+
+## 9. Próxima secuencia
+
+```text
+crear integration/v0.2.0
         ↓
-JWT RS256 access (15 min)
+merge feat/backend
         ↓
-cookie HttpOnly
-
-refresh opaco (12 h)
+merge feat/frontend
         ↓
-rotación por uso
+merge docs/project
         ↓
-Redis refresh family + reuse detection
+resolver/validar integración
+        ↓
+implementar full-stack Docker
+        ↓
+Docker smoke gate
+        ↓
+E2E Identity
+        ↓
+gate final
+        ↓
+PR/merge a main
+        ↓
+tag v0.2.0
 ```
 
-Además:
+## 10. Regla
 
-- trusted device: hasta 30 días;
-- TOTP: SHA-1, 6 dígitos, 30 s, tolerancia ±1 timestep;
-- replay protection por `lastTimeStep`;
-- recovery codes: 10, un solo uso, hash bcrypt cost 12;
-- TOTP secret: AES-256-GCM;
-- email/auth-flow tokens: alta entropía y corta vida;
-- cookies: HttpOnly, SameSite=Lax, Secure en producción;
-- anti-enumeración y rate limiting en auth.
-
-## API Identity
-
-Identity aporta 16 rutas `/auth/*`.
-Con los dos health checks, OpenAPI valida **18 paths**.
-
-Referencia:
-
-```text
-http://localhost:3000/openapi.json
-http://localhost:3000/reference
-```
-
-Mailpit:
-
-```text
-http://localhost:8025
-```
-
-## Próximo trabajo
-
-1. cerrar commit/push de `feat/backend`;
-2. implementar Identity UI en `feat/frontend`;
-3. conectar frontend a contratos reales;
-4. ejecutar E2E obligatorio;
-5. actualizar documentación con evidencia frontend/E2E;
-6. integrar `feat/backend`, `feat/frontend` y `docs/project` a `main`;
-7. ejecutar gate completo desde `main`;
-8. crear tag/release `v0.2.0`.
-
-## No avanzar todavía a v0.3.0
-
-`Album Core` comienza únicamente después de cerrar `v0.2.0` como release.
+No avanzar a `v0.3.0 — Album Core` hasta cerrar `v0.2.0` en `main` y publicar
+el tag correspondiente.
