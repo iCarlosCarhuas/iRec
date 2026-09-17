@@ -210,8 +210,8 @@ function Show-Urls {
   Write-Host 'Scalar    http://127.0.0.1:3000/reference'
   Write-Host 'OpenAPI   http://127.0.0.1:3000/openapi.json'
   Write-Host 'Mailpit   http://127.0.0.1:8025'
-  Write-Host 'Postgres  127.0.0.1:15432'
-  Write-Host 'Redis     127.0.0.1:6379'
+  Write-Host 'Postgres  internal: irec-postgres:5432'
+  Write-Host 'Redis     internal: irec-redis:6379'
 }
 
 Assert-Docker
