@@ -32,3 +32,19 @@ export function canManageAlbumMembers(
 ): boolean {
   return ownerId === viewerId;
 }
+
+
+export function canCreateAlbumProposal(
+  ownerId: string,
+  viewerId: string,
+  hasActiveMembership: boolean,
+): boolean {
+  return ownerId !== viewerId && hasActiveMembership;
+}
+
+export function canModerateAlbumProposals(
+  ownerId: string,
+  viewerId: string,
+): boolean {
+  return ownerId === viewerId;
+}

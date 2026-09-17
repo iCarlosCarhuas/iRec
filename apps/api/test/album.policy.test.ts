@@ -8,7 +8,9 @@ import {
 } from '@irec/contracts';
 
 import {
+  canCreateAlbumProposal,
   canManageAlbumMembers,
+  canModerateAlbumProposals,
   canReadAlbum,
   canUpdateAlbum,
   canViewAlbumMembers,
@@ -96,4 +98,16 @@ test('owner and active members may view membership roster', () => {
 test('only owner may manage memberships', () => {
   assert.equal(canManageAlbumMembers('owner', 'owner'), true);
   assert.equal(canManageAlbumMembers('owner', 'member'), false);
+});
+
+
+test('only active non-owner members may create proposals', () => {
+  assert.equal(canCreateAlbumProposal('owner', 'member', true), true);
+  assert.equal(canCreateAlbumProposal('owner', 'member', false), false);
+  assert.equal(canCreateAlbumProposal('owner', 'owner', true), false);
+});
+
+test('only owner may moderate proposals', () => {
+  assert.equal(canModerateAlbumProposals('owner', 'owner'), true);
+  assert.equal(canModerateAlbumProposals('owner', 'member'), false);
 });

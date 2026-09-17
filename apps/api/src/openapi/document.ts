@@ -27,7 +27,11 @@ import {
   AlbumMemberParamsSchema,
   AlbumMemberViewContract,
   AlbumMembersResponseSchema,
+  AlbumProposalParamsSchema,
+  AlbumProposalViewContract,
+  AlbumProposalsResponseSchema,
   CreateAlbumInput,
+  CreateAlbumProposalInput,
   InviteAlbumMemberInput,
   UpdateAlbumInput,
 } from '@irec/contracts';
@@ -446,6 +450,99 @@ Web: http://127.0.0.1:4200 · API: http://127.0.0.1:3000 · Mailpit: http://127.
           },
           '404': {
             description: 'Membresia no encontrada',
+            content: { 'application/problem+json': { schema: ProblemDetailsSchema } },
+          },
+          ...problemResponses,
+        },
+      },
+    },
+
+
+    '/albums/{albumId}/proposals': {
+      post: {
+        operationId: 'albumProposalCreate',
+        tags: ['Albums'],
+        summary: 'Crea una propuesta; solo miembro activo distinto del owner',
+        security: [{ accessCookie: [] }],
+        requestParams: { path: AlbumIdParamsSchema },
+        requestBody: { required: true, content: json(CreateAlbumProposalInput) },
+        responses: {
+          '201': { description: 'Propuesta pendiente creada', content: json(AlbumProposalViewContract) },
+          '403': {
+            description: 'La sesion no puede proponer contenido',
+            content: { 'application/problem+json': { schema: ProblemDetailsSchema } },
+          },
+          '404': {
+            description: 'Album privado no accesible',
+            content: { 'application/problem+json': { schema: ProblemDetailsSchema } },
+          },
+          ...problemResponses,
+        },
+      },
+      get: {
+        operationId: 'albumProposalList',
+        tags: ['Albums'],
+        summary: 'Lista propuestas y su estado; solo owner',
+        security: [{ accessCookie: [] }],
+        requestParams: { path: AlbumIdParamsSchema },
+        responses: {
+          '200': { description: 'Propuestas del album', content: json(AlbumProposalsResponseSchema) },
+          '403': {
+            description: 'Solo el owner puede revisar propuestas',
+            content: { 'application/problem+json': { schema: ProblemDetailsSchema } },
+          },
+          '404': {
+            description: 'Album no encontrado o no accesible',
+            content: { 'application/problem+json': { schema: ProblemDetailsSchema } },
+          },
+          ...problemResponses,
+        },
+      },
+    },
+    '/albums/{albumId}/proposals/{proposalId}/approve': {
+      post: {
+        operationId: 'albumProposalApprove',
+        tags: ['Albums'],
+        summary: 'Aprueba una propuesta pendiente; solo owner',
+        security: [{ accessCookie: [] }],
+        requestParams: { path: AlbumProposalParamsSchema },
+        responses: {
+          '200': { description: 'Propuesta aprobada', content: json(AlbumProposalViewContract) },
+          '403': {
+            description: 'Solo el owner puede moderar',
+            content: { 'application/problem+json': { schema: ProblemDetailsSchema } },
+          },
+          '404': {
+            description: 'Album o propuesta no encontrados',
+            content: { 'application/problem+json': { schema: ProblemDetailsSchema } },
+          },
+          '409': {
+            description: 'La propuesta ya tiene una decision final distinta',
+            content: { 'application/problem+json': { schema: ProblemDetailsSchema } },
+          },
+          ...problemResponses,
+        },
+      },
+    },
+    '/albums/{albumId}/proposals/{proposalId}/reject': {
+      post: {
+        operationId: 'albumProposalReject',
+        tags: ['Albums'],
+        summary: 'Rechaza una propuesta pendiente; solo owner',
+        security: [{ accessCookie: [] }],
+        requestParams: { path: AlbumProposalParamsSchema },
+        responses: {
+          '200': { description: 'Propuesta rechazada', content: json(AlbumProposalViewContract) },
+          '403': {
+            description: 'Solo el owner puede moderar',
+            content: { 'application/problem+json': { schema: ProblemDetailsSchema } },
+          },
+          '404': {
+            description: 'Album o propuesta no encontrados',
+            content: { 'application/problem+json': { schema: ProblemDetailsSchema } },
+          },
+          '409': {
+            description: 'La propuesta ya tiene una decision final distinta',
             content: { 'application/problem+json': { schema: ProblemDetailsSchema } },
           },
           ...problemResponses,
