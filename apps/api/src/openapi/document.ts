@@ -20,6 +20,13 @@ import {
   TotpRotateRequestSchema,
   TrustedDevicesResponseSchema,
 } from '@irec/contracts';
+import {
+  AlbumContract,
+  AlbumIdParamsSchema,
+  AlbumListResponseSchema,
+  CreateAlbumInput,
+  UpdateAlbumInput,
+} from '@irec/contracts';
 import { createDocument } from 'zod-openapi';
 import type { ZodType } from 'zod';
 
@@ -50,7 +57,7 @@ export const openApiDocument = createDocument({
   openapi: '3.1.0',
   info: {
     title: 'iRec API',
-    version: '0.2.0-dev',
+    version: '0.3.0-dev',
     description: `Contrato HTTP de iRec. Zod es la fuente de verdad y Scalar renderiza esta referencia.
 
 ## Quick start local (full-stack Docker)
@@ -79,6 +86,7 @@ Web: http://127.0.0.1:4200 · API: http://127.0.0.1:3000 · Mailpit: http://127.
   tags: [
     { name: 'Health', description: 'Estado del servicio' },
     { name: 'Auth', description: 'Identity passwordless: email + TOTP' },
+    { name: 'Albums', description: 'Album Core: ownership, visibility y membresias' },
   ],
   paths: {
     '/health/live': {
@@ -295,6 +303,69 @@ Web: http://127.0.0.1:4200 · API: http://127.0.0.1:3000 · Mailpit: http://127.
         },
       },
     },
+    '/albums': {
+      post: {
+        operationId: 'albumCreate',
+        tags: ['Albums'],
+        summary: 'Crea un album y registra al creador como owner activo',
+        security: [{ accessCookie: [] }],
+        requestBody: { required: true, content: json(CreateAlbumInput) },
+        responses: {
+          '201': { description: 'Album creado', content: json(AlbumContract) },
+          ...problemResponses,
+        },
+      },
+      get: {
+        operationId: 'albumListMine',
+        tags: ['Albums'],
+        summary: 'Lista albumes propios o con membresia activa',
+        security: [{ accessCookie: [] }],
+        responses: {
+          '200': { description: 'Albumes accesibles', content: json(AlbumListResponseSchema) },
+          ...problemResponses,
+        },
+      },
+    },
+    '/albums/{albumId}': {
+      get: {
+        operationId: 'albumGet',
+        tags: ['Albums'],
+        summary: 'Lee un album publico o un album privado accesible',
+        requestParams: { path: AlbumIdParamsSchema },
+        responses: {
+          '200': { description: 'Album', content: json(AlbumContract) },
+          '404': {
+            description: 'Album inexistente o privado para la sesion',
+            content: { 'application/problem+json': { schema: ProblemDetailsSchema } },
+          },
+          '422': {
+            description: 'Identificador invalido',
+            content: { 'application/problem+json': { schema: ProblemDetailsSchema } },
+          },
+        },
+      },
+      patch: {
+        operationId: 'albumUpdate',
+        tags: ['Albums'],
+        summary: 'Actualiza un album; solo owner',
+        security: [{ accessCookie: [] }],
+        requestParams: { path: AlbumIdParamsSchema },
+        requestBody: { required: true, content: json(UpdateAlbumInput) },
+        responses: {
+          '200': { description: 'Album actualizado', content: json(AlbumContract) },
+          '403': {
+            description: 'Solo el owner puede modificar',
+            content: { 'application/problem+json': { schema: ProblemDetailsSchema } },
+          },
+          '404': {
+            description: 'Album no encontrado',
+            content: { 'application/problem+json': { schema: ProblemDetailsSchema } },
+          },
+          ...problemResponses,
+        },
+      },
+    },
+
   },
   components: {
     securitySchemes: {

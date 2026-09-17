@@ -12,6 +12,11 @@ export type AlbumMemberStatus = z.infer<typeof AlbumMemberStatus>;
 export const AlbumId = z.string().uuid();
 export type AlbumId = z.infer<typeof AlbumId>;
 
+export const AlbumIdParamsSchema = z.object({
+  albumId: AlbumId,
+});
+export type AlbumIdParams = z.infer<typeof AlbumIdParamsSchema>;
+
 export const CreateAlbumInput = z.object({
   title: z.string().trim().min(1).max(160),
   description: z.string().trim().max(2000).nullable().optional(),
@@ -19,11 +24,19 @@ export const CreateAlbumInput = z.object({
 });
 export type CreateAlbumInput = z.infer<typeof CreateAlbumInput>;
 
-export const UpdateAlbumInput = z.object({
-  title: z.string().trim().min(1).max(160).optional(),
-  description: z.string().trim().max(2000).nullable().optional(),
-  visibility: AlbumVisibility.optional(),
-});
+export const UpdateAlbumInput = z
+  .object({
+    title: z.string().trim().min(1).max(160).optional(),
+    description: z.string().trim().max(2000).nullable().optional(),
+    visibility: AlbumVisibility.optional(),
+  })
+  .refine(
+    (value) =>
+      value.title !== undefined ||
+      value.description !== undefined ||
+      value.visibility !== undefined,
+    { message: 'Debe enviarse al menos un campo para actualizar.' },
+  );
 export type UpdateAlbumInput = z.infer<typeof UpdateAlbumInput>;
 
 export const AlbumContract = z.object({
@@ -36,6 +49,11 @@ export const AlbumContract = z.object({
   updatedAt: z.string().datetime(),
 });
 export type AlbumContract = z.infer<typeof AlbumContract>;
+
+export const AlbumListResponseSchema = z.object({
+  albums: z.array(AlbumContract),
+});
+export type AlbumListResponse = z.infer<typeof AlbumListResponseSchema>;
 
 export const AlbumMemberContract = z.object({
   albumId: AlbumId,
