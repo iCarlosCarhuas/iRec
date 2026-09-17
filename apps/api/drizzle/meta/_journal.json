@@ -8,6 +8,13 @@
       "when": 1789463983140,
       "tag": "0000_brief_dreadnoughts",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1789618217799,
+      "tag": "0001_spotty_forgotten_one",
+      "breakpoints": true
     }
   ]
 }
