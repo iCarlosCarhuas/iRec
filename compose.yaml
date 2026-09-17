@@ -8,8 +8,6 @@ services:
       POSTGRES_DB: irec
       POSTGRES_USER: irec
       POSTGRES_PASSWORD: irec_dev
-    ports:
-      - "127.0.0.1:15432:5432"
     volumes:
       - irec-fullstack-postgres-data:/var/lib/postgresql/data
     networks:
@@ -26,8 +24,6 @@ services:
     container_name: irec-redis
     image: redis:8-alpine
     command: ["redis-server", "--appendonly", "yes"]
-    ports:
-      - "127.0.0.1:6379:6379"
     volumes:
       - irec-fullstack-redis-data:/data
     networks:
@@ -92,6 +88,16 @@ services:
         condition: service_started
     networks:
       - irec-network
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "node -e \"require('http').get('http://127.0.0.1:3000/api/health/ready',r=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))\""
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 10s
     restart: unless-stopped
 
   irec-web:
@@ -112,6 +118,7 @@ services:
 volumes:
   irec-fullstack-postgres-data:
     name: irec-fullstack-postgres-data
+
   irec-fullstack-redis-data:
     name: irec-fullstack-redis-data
 

@@ -22,27 +22,150 @@ function Assert-Docker {
   if (-not (Get-Command docker -ErrorAction SilentlyContinue)) {
     throw 'Docker no esta disponible en PATH. Instala/inicia Docker Desktop.'
   }
-  & docker info *> $null
-  if ($LASTEXITCODE -ne 0) {
+
+  $previousPreference = $ErrorActionPreference
+  $ErrorActionPreference = 'Continue'
+  try {
+    & docker info *> $null
+    $dockerInfoExit = $LASTEXITCODE
+
+    & docker compose version *> $null
+    $composeExit = $LASTEXITCODE
+  } finally {
+    $ErrorActionPreference = $previousPreference
+  }
+
+  if ($dockerInfoExit -ne 0) {
     throw 'Docker esta instalado, pero el daemon no responde. Inicia Docker Desktop.'
   }
-  & docker compose version *> $null
-  if ($LASTEXITCODE -ne 0) {
+
+  if ($composeExit -ne 0) {
     throw 'Docker Compose v2 no esta disponible.'
   }
 }
 
+function Get-ContainerComposeProject {
+  param([string]$ContainerName)
+
+  $previousPreference = $ErrorActionPreference
+  $ErrorActionPreference = 'Continue'
+  try {
+    $raw = (& docker inspect $ContainerName 2>$null | Out-String)
+    $inspectExit = $LASTEXITCODE
+  } finally {
+    $ErrorActionPreference = $previousPreference
+  }
+
+  if ($inspectExit -ne 0 -or [string]::IsNullOrWhiteSpace($raw)) {
+    return $null
+  }
+
+  try {
+    $inspect = $raw | ConvertFrom-Json
+    if (-not $inspect -or $inspect.Count -lt 1) {
+      return $null
+    }
+
+    $labels = $inspect[0].Config.Labels
+    if (-not $labels) {
+      return $null
+    }
+
+    return $labels.'com.docker.compose.project'
+  } catch {
+    throw "No se pudo interpretar docker inspect para '$ContainerName': $($_.Exception.Message)"
+  }
+}
 
 function Assert-NoForeignIrecContainers {
-  $expected = @('irec-postgres', 'irec-redis', 'irec-mailpit', 'irec-migrate', 'irec-api', 'irec-web')
+  $expected = @(
+    'irec-postgres',
+    'irec-redis',
+    'irec-mailpit',
+    'irec-migrate',
+    'irec-api',
+    'irec-web'
+  )
+
   foreach ($name in $expected) {
-    $exists = ((& docker ps -a --filter "name=^/${name}$" --format '{{.Names}}' 2>$null | Out-String).Trim())
+    $previousPreference = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    try {
+      $exists = ((& docker ps -a --filter "name=^/${name}$" --format '{{.Names}}' 2>$null | Out-String).Trim())
+      $psExit = $LASTEXITCODE
+    } finally {
+      $ErrorActionPreference = $previousPreference
+    }
+
+    if ($psExit -ne 0) {
+      throw "No se pudo consultar Docker para verificar el contenedor '$name'."
+    }
+
     if ($exists -eq $name) {
-      $project = ((& docker inspect -f '{{ index .Config.Labels "com.docker.compose.project" }}' $name 2>$null | Out-String).Trim())
+      $project = Get-ContainerComposeProject -ContainerName $name
+
       if ($project -and $project -ne 'irec-v020') {
         throw "El contenedor $name pertenece a '$project'. Deten ese entorno antes de levantar full-stack (por ejemplo: pnpm dev:infra:down)."
       }
+
+      if (-not $project) {
+        throw "El contenedor $name ya existe pero no pertenece a un proyecto Compose identificable. Revisalo antes de continuar: docker inspect $name"
+      }
     }
+  }
+}
+
+function Invoke-EnvGeneratorWithLocalNode {
+  $node = Get-Command node -ErrorAction SilentlyContinue
+  if (-not $node) { return $false }
+
+  Write-Host "[INFO] Generando .env.docker con Node local: $($node.Source)" -ForegroundColor Cyan
+  Push-Location $RepoRoot
+  try {
+    & node scripts/generate-docker-env.mjs
+    if ($LASTEXITCODE -ne 0) {
+      Write-Host '[WARN] Node local no pudo generar .env.docker; se intentara Docker como fallback.' -ForegroundColor Yellow
+      return $false
+    }
+  } finally {
+    Pop-Location
+  }
+
+  return (Test-Path $DockerEnv)
+}
+
+function Invoke-EnvGeneratorWithDocker {
+  $image = 'node:24.15.0-alpine'
+
+  Write-Host "[INFO] Node local no disponible. Usando $image." -ForegroundColor Cyan
+
+  $previousPreference = $ErrorActionPreference
+  $ErrorActionPreference = 'Continue'
+  try {
+    & docker image inspect $image *> $null
+    $imageExists = ($LASTEXITCODE -eq 0)
+  } finally {
+    $ErrorActionPreference = $previousPreference
+  }
+
+  if (-not $imageExists) {
+    Write-Host "[INFO] Descargando $image. El progreso debe verse en pantalla..." -ForegroundColor Cyan
+    & docker pull $image
+    if ($LASTEXITCODE -ne 0) {
+      throw "No se pudo descargar $image. Revisa red/Docker Desktop."
+    }
+  }
+
+  Push-Location $RepoRoot
+  try {
+    $mount = "${RepoRoot}:/workspace"
+    Write-Host '[INFO] Ejecutando generador dentro de Docker...' -ForegroundColor Cyan
+    & docker run --rm -v $mount -w /workspace $image node scripts/generate-docker-env.mjs
+    if ($LASTEXITCODE -ne 0) {
+      throw 'No se pudo generar .env.docker usando Docker.'
+    }
+  } finally {
+    Pop-Location
   }
 }
 
@@ -52,15 +175,18 @@ function Ensure-DockerEnv {
     return
   }
 
-  Write-Host '[INFO] Generando .env.docker con Node ejecutado dentro de Docker...' -ForegroundColor Cyan
-  Push-Location $RepoRoot
-  try {
-    $mount = "${RepoRoot}:/workspace"
-    & docker run --rm -v $mount -w /workspace node:24.15.0-alpine node scripts/generate-docker-env.mjs
-    if ($LASTEXITCODE -ne 0) { throw 'No se pudo generar .env.docker.' }
-  } finally {
-    Pop-Location
+  if (Invoke-EnvGeneratorWithLocalNode) {
+    Write-Host '[OK] .env.docker generado con Node local.' -ForegroundColor Green
+    return
   }
+
+  Invoke-EnvGeneratorWithDocker
+
+  if (-not (Test-Path $DockerEnv)) {
+    throw '.env.docker no fue creado.'
+  }
+
+  Write-Host '[OK] .env.docker generado mediante Docker.' -ForegroundColor Green
 }
 
 function Test-Http {
@@ -99,7 +225,6 @@ switch ($Action) {
       Write-Host '[OK] compose.yaml es valido.' -ForegroundColor Green
     } else {
       Write-Host '[WARN] .env.docker falta. Ejecuta: scripts/irec.ps1 setup' -ForegroundColor Yellow
-      Write-Host '[INFO] La validacion completa de compose se ejecutara despues de generar el entorno.' -ForegroundColor Cyan
     }
     Show-Urls
   }
