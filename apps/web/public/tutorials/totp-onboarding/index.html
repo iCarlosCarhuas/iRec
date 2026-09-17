@@ -1,0 +1,322 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>iRec · Configurar TOTP</title>
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js"></script>
+  <style>
+    :root {
+      --bg: #090b0f;
+      --panel: #151922;
+      --panel2: #0e1117;
+      --line: #2c3340;
+      --text: #f4f5f7;
+      --muted: #b0bac9;
+      --muted2: #8895a8;
+      --accent: #d9ff6f;
+      --accent-ink: #10140a;
+      --blue: #8fb5ff;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      width: 100%; height: 100%; margin: 0; overflow: hidden;
+      background: var(--bg); color: var(--text);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    #stage {
+      position: relative; width: 1080px; height: 1920px; overflow: hidden;
+      background:
+        radial-gradient(circle at 10% 0%, rgba(116,94,255,.18), transparent 700px),
+        radial-gradient(circle at 100% 72%, rgba(217,255,111,.08), transparent 650px),
+        var(--bg);
+    }
+    .brand { position:absolute; top:78px; left:74px; display:flex; align-items:center; gap:16px; z-index:20; }
+    .mark { display:grid; width:64px; height:64px; place-items:center; border:1px solid #394150; border-radius:20px; background:linear-gradient(145deg,#1e2330,#11141a); font-size:26px; font-weight:950; letter-spacing:-.08em; }
+    .brand-copy { display:grid; }
+    .brand-copy strong { font-size:28px; }
+    .brand-copy small { margin-top:3px; color:#778296; font-size:15px; letter-spacing:.14em; text-transform:uppercase; }
+    .route-pill { position:absolute; top:163px; left:74px; padding:9px 14px; border:1px solid #2d3542; border-radius:999px; color:#cbd3df; background:#0d1015; font:700 14px/1 ui-monospace,SFMono-Regular,Menlo,monospace; }
+    .progress { position:absolute; top:220px; left:74px; right:74px; height:7px; overflow:hidden; border-radius:999px; background:#1f252f; }
+    .progress > div { width:0%; height:100%; background:var(--accent); }
+    .scene { position:absolute; inset:278px 74px 100px; display:grid; grid-template-rows:auto 1fr; opacity:0; }
+    .step { color:var(--accent); font-size:17px; font-weight:900; letter-spacing:.15em; text-transform:uppercase; }
+    h1 { max-width:900px; margin:20px 0 16px; font-size:78px; line-height:.99; letter-spacing:-.052em; }
+    .lead { max-width:875px; margin:0; color:#c0c8d4; font-size:28px; line-height:1.46; }
+    .visual { align-self:center; display:grid; place-items:center; min-height:900px; }
+
+    .phone {
+      position:relative; width:610px; height:1000px; padding:34px;
+      border:5px solid #343c49; border-radius:76px; background:#080a0d;
+      box-shadow:0 50px 150px rgba(0,0,0,.34);
+    }
+    .phone::before { position:absolute; top:18px; left:50%; width:172px; height:24px; border-radius:999px; background:#1b2028; content:""; transform:translateX(-50%); }
+    .screen { height:100%; padding:68px 30px 30px; overflow:hidden; border-radius:48px; background:linear-gradient(180deg,#151922,#0d1015); }
+    .screen-top { display:flex; justify-content:space-between; align-items:center; margin-bottom:24px; color:var(--muted2); font-size:16px; }
+    .app-title { font-size:29px; font-weight:900; }
+    .app-sub { margin-top:7px; color:var(--muted); font-size:20px; line-height:1.4; }
+
+    .search-bar { margin-top:34px; padding:20px 22px; border:1px solid #343d4b; border-radius:18px; background:#0a0d12; color:#dce3ed; font-size:21px; }
+    .store-result { display:grid; grid-template-columns:82px 1fr auto; gap:18px; align-items:center; margin-top:22px; padding:22px; border:1px solid var(--line); border-radius:24px; background:#10141b; }
+    .app-icon { display:grid; width:82px; height:82px; place-items:center; border-radius:25px; background:conic-gradient(#4285f4 0 25%,#34a853 0 50%,#fbbc04 0 75%,#ea4335 0); color:#fff; font-size:28px; font-weight:950; }
+    .store-result strong { display:block; font-size:22px; }
+    .store-result span { display:block; margin-top:6px; color:var(--muted); font-size:17px; }
+    .install { padding:11px 17px; border-radius:999px; background:var(--accent); color:var(--accent-ink); font-size:16px; font-weight:900; }
+
+    .auth-home { display:grid; gap:16px; margin-top:46px; }
+    .empty-card { padding:26px; border:1px solid var(--line); border-radius:24px; background:#10141b; color:var(--muted); font-size:19px; line-height:1.45; }
+    .fab { position:absolute; right:54px; bottom:58px; display:grid; width:112px; height:112px; place-items:center; border-radius:38px; background:var(--accent); color:var(--accent-ink); font-size:58px; font-weight:600; box-shadow:0 18px 70px rgba(217,255,111,.18); }
+    .menu { position:absolute; right:50px; bottom:185px; width:380px; padding:14px; border:1px solid #36404d; border-radius:24px; background:#181d25; box-shadow:0 26px 80px rgba(0,0,0,.38); }
+    .menu-item { display:flex; align-items:center; gap:16px; padding:18px; border-radius:16px; font-size:20px; }
+    .menu-item.active { background:rgba(217,255,111,.08); color:#efffc0; }
+    .menu-icon { display:grid; width:42px; height:42px; place-items:center; border:1px solid #3b4554; border-radius:13px; color:var(--accent); }
+
+    .desktop {
+      width:900px; padding:28px; border:1px solid #303846; border-radius:30px;
+      background:linear-gradient(145deg,#151922,#0b0e13);
+      box-shadow:0 40px 140px rgba(0,0,0,.28);
+    }
+    .browserbar { display:flex; align-items:center; gap:10px; padding-bottom:18px; border-bottom:1px solid #2a313c; color:#aeb8c7; font-size:16px; }
+    .browserbar code { margin-left:14px; color:#dce3ed; }
+    .dots { display:flex; gap:7px; }
+    .dot { width:10px; height:10px; border-radius:50%; background:#46505e; }
+    .irec-card { display:grid; grid-template-columns:1fr 1fr; gap:18px; margin-top:24px; }
+    .qr-card,.confirm-card { padding:22px; border:1px solid #2e3541; border-radius:22px; background:#10141b; }
+    .label { color:#8c99ac; font-size:14px; font-weight:850; letter-spacing:.12em; text-transform:uppercase; }
+    .fake-qr { width:300px; height:300px; margin:18px auto; padding:26px; border-radius:20px; background:#fff; position:relative; }
+    .fake-qr::before { content:""; position:absolute; inset:45px; background:
+      repeating-linear-gradient(90deg,#111 0 18px,#fff 18px 34px),
+      repeating-linear-gradient(#111 0 18px,#fff 18px 34px);
+      background-blend-mode:multiply;
+    }
+    .manual { color:#cbd4e2; font:700 14px/1.4 ui-monospace,SFMono-Regular,Menlo,monospace; overflow-wrap:anywhere; }
+    .otp-box { margin-top:26px; padding:24px; border:1px solid #3a4452; border-radius:18px; background:#090c10; text-align:center; font-size:42px; font-weight:900; letter-spacing:.24em; }
+    .activate { margin-top:18px; padding:19px; border-radius:16px; background:var(--accent); color:var(--accent-ink); text-align:center; font-size:20px; font-weight:900; }
+
+    .camera-view { position:relative; height:690px; margin-top:40px; border:1px solid #35404f; border-radius:32px; overflow:hidden; background:#07090d; }
+    .scan-copy { position:absolute; top:34px; left:30px; right:30px; color:#d7dfe9; font-size:18px; text-align:center; }
+    .scan-frame { position:absolute; left:75px; right:75px; top:160px; height:390px; border:4px solid rgba(217,255,111,.7); border-radius:34px; }
+    .scan-frame::before { content:"QR de iRec"; position:absolute; inset:66px; display:grid; place-items:center; background:
+      repeating-linear-gradient(90deg,#f7f8fa 0 18px,#101216 18px 34px),
+      repeating-linear-gradient(#f7f8fa 0 18px,#101216 18px 34px);
+      background-blend-mode:multiply; border:24px solid white; outline:16px solid #101216; color:transparent; }
+    .scan-line { position:absolute; left:110px; right:110px; top:350px; height:4px; background:var(--accent); box-shadow:0 0 28px rgba(217,255,111,.6); }
+
+    .code-card { margin-top:48px; padding:25px; border:1px solid #333d4a; border-radius:24px; background:#10141b; }
+    .code-head { display:flex; align-items:start; justify-content:space-between; gap:12px; }
+    .code-head div { display:grid; gap:5px; }
+    .code-head strong { font-size:24px; }
+    .code-head span { color:var(--muted); font-size:17px; }
+    .code { margin-top:30px; font-size:58px; font-weight:950; letter-spacing:.17em; }
+    .timer { height:8px; margin-top:26px; overflow:hidden; border-radius:999px; background:#222934; }
+    .timer > div { width:62%; height:100%; background:var(--accent); }
+
+    .recovery {
+      width:820px; padding:34px; border:1px solid #313947; border-radius:30px;
+      background:linear-gradient(145deg,#151922,#0d1015);
+    }
+    .recovery h2 { margin:10px 0 12px; font-size:42px; letter-spacing:-.035em; }
+    .recovery p { margin:0; color:var(--muted); font-size:21px; line-height:1.5; }
+    .codes { display:grid; grid-template-columns:1fr 1fr; gap:9px; margin-top:24px; }
+    .recovery-code { padding:14px 16px; border:1px solid #303845; border-radius:13px; background:#090c10; color:#dce3ed; font:700 17px/1.2 ui-monospace,SFMono-Regular,Menlo,monospace; }
+
+    .alt-note { position:absolute; left:74px; right:74px; bottom:54px; display:flex; justify-content:space-between; gap:20px; color:#7f8ba0; font-size:15px; }
+    .alt-note strong { color:#aeb9c8; }
+
+    .caption {
+      position:absolute; right:74px; top:86px; max-width:430px; padding:12px 14px;
+      border:1px solid #2f3743; border-radius:14px; background:rgba(13,16,21,.88);
+      color:#aeb9c8; font-size:14px; line-height:1.45; text-align:right;
+    }
+  </style>
+</head>
+<body>
+  <div id="stage" data-composition-id="irec-totp-onboarding" data-start="0" data-duration="26" data-width="1080" data-height="1920" data-fps="30" data-no-timeline>
+    <div class="brand">
+      <div class="mark">iR</div>
+      <div class="brand-copy"><strong>iRec</strong><small>TOTP onboarding</small></div>
+    </div>
+    <div class="caption">Ejemplo visual. Los textos pueden variar ligeramente según la versión de la app.</div>
+    <div class="route-pill">/auth/totp/setup</div>
+    <div class="progress"><div id="progress-fill"></div></div>
+
+    <section id="scene-1" class="scene clip" data-start="0" data-duration="4.2" data-track-index="1">
+      <div>
+        <div class="step">01 · Instala Google Authenticator</div>
+        <h1>Busca la app oficial.</h1>
+        <p class="lead">En Play Store o App Store busca “Google Authenticator”. Comprueba el desarrollador antes de instalar.</p>
+      </div>
+      <div class="visual">
+        <div class="phone">
+          <div class="screen">
+            <div class="screen-top"><span>Store</span><span>09:41</span></div>
+            <div class="app-title">Buscar aplicaciones</div>
+            <div class="search-bar">Google Authenticator</div>
+            <div class="store-result">
+              <div class="app-icon">G</div>
+              <div><strong>Google Authenticator</strong><span>Google LLC · Autenticación</span></div>
+              <div class="install">Instalar</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="scene-2" class="scene clip" data-start="4.2" data-duration="4.2" data-track-index="1">
+      <div>
+        <div class="step">02 · Agrega iRec</div>
+        <h1>Abre Authenticator y toca +.</h1>
+        <p class="lead">Elige “Escanear un código QR”. Si tu versión muestra “Introducir clave de configuración”, esa es la alternativa manual.</p>
+      </div>
+      <div class="visual">
+        <div class="phone">
+          <div class="screen">
+            <div class="screen-top"><span>Google Authenticator</span><span>⋮</span></div>
+            <div class="app-title">Tus códigos</div>
+            <div class="auth-home">
+              <div class="empty-card">Todavía no agregaste iRec. Toca el botón + para comenzar.</div>
+            </div>
+          </div>
+          <div class="menu">
+            <div class="menu-item active"><div class="menu-icon">⌗</div><span>Escanear un código QR</span></div>
+            <div class="menu-item"><div class="menu-icon">⌨</div><span>Introducir clave de configuración</span></div>
+          </div>
+          <div class="fab">+</div>
+        </div>
+      </div>
+    </section>
+
+    <section id="scene-3" class="scene clip" data-start="8.4" data-duration="4.4" data-track-index="1">
+      <div>
+        <div class="step">03 · Usa el QR de esta pantalla</div>
+        <h1>No salgas de iRec.</h1>
+        <p class="lead">En <b>/auth/totp/setup</b> ya tienes el QR y la clave manual. Usa el teléfono para escanear ese QR.</p>
+      </div>
+      <div class="visual">
+        <div class="desktop">
+          <div class="browserbar"><div class="dots"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div><code>127.0.0.1:4200/auth/totp/setup</code></div>
+          <div class="irec-card">
+            <div class="qr-card">
+              <div class="label">Escanea este QR</div>
+              <div class="fake-qr"></div>
+              <div class="label">Clave manual</div>
+              <div class="manual">JBSWY3DPEHPK3PXP...</div>
+            </div>
+            <div class="confirm-card">
+              <div class="label">Confirma que funciona</div>
+              <h3>Escribe el código actual</h3>
+              <div class="otp-box">000000</div>
+              <div class="activate">Activar TOTP</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="scene-4" class="scene clip" data-start="12.8" data-duration="4.2" data-track-index="1">
+      <div>
+        <div class="step">04 · Escanea</div>
+        <h1>Apunta al QR de iRec.</h1>
+        <p class="lead">Concede acceso a la cámara si la app lo solicita. El QR del tutorial es ficticio; escanea únicamente el QR real que ves en iRec.</p>
+      </div>
+      <div class="visual">
+        <div class="phone">
+          <div class="screen">
+            <div class="screen-top"><span>Escanear código QR</span><span>×</span></div>
+            <div class="camera-view">
+              <div class="scan-copy">Coloca el código QR dentro del recuadro</div>
+              <div class="scan-frame"></div>
+              <div class="scan-line"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="scene-5" class="scene clip" data-start="17" data-duration="4.3" data-track-index="1">
+      <div>
+        <div class="step">05 · Copia el código actual</div>
+        <h1>Verás “iRec” y 6 dígitos.</h1>
+        <p class="lead">El código cambia aproximadamente cada 30 segundos. Vuelve a iRec, escribe los seis dígitos y pulsa “Activar TOTP”.</p>
+      </div>
+      <div class="visual">
+        <div class="phone">
+          <div class="screen">
+            <div class="screen-top"><span>Google Authenticator</span><span>⋮</span></div>
+            <div class="code-card">
+              <div class="code-head">
+                <div><strong>iRec</strong><span>usuario@ejemplo.com</span></div>
+                <span>TOTP</span>
+              </div>
+              <div class="code">657192</div>
+              <div class="timer"><div></div></div>
+            </div>
+            <div class="empty-card" style="margin-top:22px;">En iRec: campo “Código TOTP” → 657192 → “Activar TOTP”.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="scene-6" class="scene clip" data-start="21.3" data-duration="4.7" data-track-index="1">
+      <div>
+        <div class="step">06 · Guarda los recovery codes</div>
+        <h1>Después de activar TOTP, guarda los 10 códigos.</h1>
+        <p class="lead">Se muestran una sola vez. Sirven para recuperar el acceso si pierdes el autenticador.</p>
+      </div>
+      <div class="visual">
+        <div class="recovery">
+          <div class="label">iRec · Recovery codes</div>
+          <h2>Guárdalos antes de continuar.</h2>
+          <p>Ejemplo ficticio. Cada código real funciona una sola vez.</p>
+          <div class="codes">
+            <div class="recovery-code">01 · IREC-7K2M-••••</div>
+            <div class="recovery-code">02 · IREC-4Q8P-••••</div>
+            <div class="recovery-code">03 · IREC-9T3N-••••</div>
+            <div class="recovery-code">04 · IREC-2X6R-••••</div>
+            <div class="recovery-code">05 · IREC-8C5V-••••</div>
+            <div class="recovery-code">06 · IREC-3M7K-••••</div>
+            <div class="recovery-code">07 · IREC-5P2L-••••</div>
+            <div class="recovery-code">08 · IREC-6R9T-••••</div>
+            <div class="recovery-code">09 · IREC-1V4C-••••</div>
+            <div class="recovery-code">10 · IREC-0N8Q-••••</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="alt-note">
+      <span><strong>Microsoft Authenticator:</strong> + → Otra cuenta → Escanear un código QR.</span>
+      <span>No contiene secretos reales.</span>
+    </div>
+
+    <script>
+      const tl = gsap.timeline({ paused: true });
+      const scenes = [
+        ["#scene-1", 0, 4.2],
+        ["#scene-2", 4.2, 4.2],
+        ["#scene-3", 8.4, 4.4],
+        ["#scene-4", 12.8, 4.2],
+        ["#scene-5", 17, 4.3],
+        ["#scene-6", 21.3, 4.7]
+      ];
+
+      for (const [selector, start, duration] of scenes) {
+        tl.set(selector, { opacity: 0 }, 0);
+        tl.to(selector, { opacity: 1, duration: 0.28 }, start);
+        tl.from(`${selector} h1`, { y: 38, opacity: 0, duration: 0.5, ease: "power2.out" }, start + 0.1);
+        tl.from(`${selector} .lead`, { y: 22, opacity: 0, duration: 0.45, ease: "power2.out" }, start + 0.2);
+        tl.from(`${selector} .visual`, { y: 48, scale: 0.97, opacity: 0, duration: 0.65, ease: "power3.out" }, start + 0.28);
+        tl.to(selector, { opacity: 0, duration: 0.25 }, start + duration - 0.25);
+      }
+
+      tl.to("#progress-fill", { width: "100%", duration: 26, ease: "none" }, 0);
+
+      window.__timelines = window.__timelines || {};
+      window.__timelines["irec-totp-onboarding"] = tl;
+
+      const params = new URLSearchParams(location.search);
+      if (params.get("autoplay") === "1") tl.play(0);
+    </script>
+  </div>
+</body>
+</html>

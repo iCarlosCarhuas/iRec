@@ -1,161 +1,51 @@
-# OpenAPI con Zod + Scalar
+# OpenAPI + Scalar
 
-## Objetivo
-
-La documentación de API será ejecutable y sincronizada con la validación real.
-
-## Dependencias previstas
-
-```bash
-pnpm add zod zod-openapi
-pnpm add @scalar/nestjs-api-reference
-```
-
-`zod-openapi` actual utiliza Zod 4 y puede generar OpenAPI 3.1.
-
-## Organización backend
+## Cadena de documentación API
 
 ```text
-apps/api/src/
-├─ contracts/
-│  ├─ auth.schemas.ts
-│  ├─ album.schemas.ts
-│  ├─ storage.schemas.ts
-│  ├─ asset.schemas.ts
-│  ├─ theme.schemas.ts
-│  └─ youtube.schemas.ts
-├─ openapi/
-│  ├─ document.ts
-│  └─ scalar.ts
-└─ main.ts
+Zod schemas
+   ↓
+zod-openapi
+   ↓
+OpenAPI 3.1
+   ↓
+Scalar
 ```
 
-## Ejemplo de schema
+Zod es la fuente de verdad de los contratos. No se mantiene un
+`openapi.yaml` manual.
 
-```ts
-import * as z from 'zod';
-import 'zod-openapi';
-
-export const AlbumId = z
-  .uuid()
-  .meta({
-    id: 'AlbumId',
-    description: 'Identificador único del álbum',
-    example: '0199f13c-4f11-7f30-a0f2-3b6ce5f0e123',
-  });
-
-export const CreateAlbumRequest = z
-  .object({
-    title: z.string().trim().min(1).max(120),
-    description: z.string().trim().max(1000).optional(),
-    visibility: z.enum(['PUBLIC', 'PRIVATE']),
-    storageConnectionId: z.uuid(),
-  })
-  .meta({ id: 'CreateAlbumRequest' });
-```
-
-## Documento
-
-```ts
-import { createDocument } from 'zod-openapi';
-
-export const openApiDocument = createDocument({
-  openapi: '3.1.0',
-  info: {
-    title: 'iRec API',
-    version: process.env.APP_VERSION ?? '0.1.0',
-    description: 'API del álbum digital iRec',
-  },
-  servers: [
-    { url: '/api', description: 'Current environment' },
-  ],
-  paths: {
-    // Cada módulo registra operaciones usando sus Zod schemas.
-  },
-  components: {
-    securitySchemes: {
-      sessionCookie: {
-        type: 'apiKey',
-        in: 'cookie',
-        name: 'irec_session',
-      },
-    },
-  },
-});
-```
-
-## Endpoints de documentación
-
-Backend debe exponer:
+## URLs
 
 ```text
-GET /openapi.json
-GET /reference
+OpenAPI  http://127.0.0.1:3000/openapi.json
+Scalar   http://127.0.0.1:3000/reference
 ```
 
-`/openapi.json` devuelve el documento generado.
+## Quick Start dentro de Scalar
 
-Scalar consume ese endpoint:
+`info.description` incluye un resumen operativo del full-stack Docker:
 
-```ts
-import { apiReference } from '@scalar/nestjs-api-reference';
-
-app.use(
-  '/reference',
-  apiReference({
-    url: '/openapi.json',
-    theme: 'default',
-  }),
-);
+```text
+setup de .env.docker
+docker compose up --build -d
+Web/API/Mailpit
 ```
 
-## Reglas contract-first
+Ese resumen no reemplaza la documentación de Git/worktrees/release.
 
-1. Request body/query/path/header tienen schema Zod.
-2. Response relevante tiene schema.
-3. Cada operación tiene `operationId`.
-4. Cada operación tiene tags.
-5. Errores comunes usan schemas reutilizables.
-6. No documentar secretos reales en ejemplos.
-7. No crear DTO de clase paralelo si no aporta valor.
-8. OpenAPI generado se valida en CI.
-9. Breaking change de contrato obliga revisión SemVer.
-10. Scalar nunca es fuente de verdad: es renderer del OpenAPI.
+La guía completa sigue en:
 
-## Tags previstos
-
-- Auth
-- Users
-- Albums
-- Storage
-- Assets
-- Moderation
-- Themes
-- YouTube
-- Live
-- Health
-
-## Errores
-
-Formato unificado:
-
-```json
-{
-  "type": "https://irec.app/problems/validation-error",
-  "title": "Validation error",
-  "status": 422,
-  "detail": "The request contains invalid fields",
-  "requestId": "..."
-}
+```text
+docs/GETTING-STARTED.md
+docs/TECH/FULLSTACK-DOCKER.md
+docs/TECH/INTEGRATION-V020.md
 ```
 
-Se recomienda RFC 9457 Problem Details.
+## Reglas
 
-## Seguridad de documentación
-
-En producción:
-
-- `/openapi.json` puede ser público si no revela topología sensible;
-- Scalar no debe contener tokens por defecto;
-- habilitar autorización interactiva solo donde resulte seguro;
-- jamás precargar credenciales.
+- endpoints y schemas: código/Zod;
+- OpenAPI: generado;
+- UI API: Scalar;
+- onboarding del repositorio: Markdown versionado;
+- no duplicar contratos manualmente en YAML.

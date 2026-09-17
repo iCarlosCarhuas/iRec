@@ -1,20 +1,17 @@
-# iRec worktrees
-
-Después de extraer el proyecto en `E:\MVP\iRec`, ejecuta:
-
-```powershell
-cd E:\MVP\iRec
-Set-ExecutionPolicy -Scope Process Bypass
-.\scripts\setup-worktrees.ps1
-```
-
-Resultado:
+# Worktrees iRec
 
 ```text
-E:\MVP\iRec                         main
-E:\MVP\iRec-worktrees\frontend      feat/frontend
-E:\MVP\iRec-worktrees\backend       feat/backend
-E:\MVP\iRec-worktrees\docs          docs/project
+E:\MVP\iRec                    → main
+E:\MVP\iRec-worktrees\backend  → feat/backend
+E:\MVP\iRec-worktrees\frontend → feat/frontend
+E:\MVP\iRec-worktrees\docs     → docs/project
+E:\MVP\iRec-worktrees\v0.2.0   → integration/v0.2.0
 ```
 
-Consulta `docs/TECH/WORKTREES.md` para el flujo completo.
+Los worktrees comparten el mismo repositorio Git pero cada uno tiene su propio
+working tree y branch checked out.
+
+`integration/v0.2.0` es el lugar donde backend, frontend y docs se encuentran
+y donde se ejecutan Docker/E2E antes del merge a `main`.
+
+Ver `docs/TECH/WORKTREES.md` y `docs/TECH/INTEGRATION-V020.md`.

@@ -5,7 +5,10 @@ coverage/
 .env
 .env.*
 !.env.example
+!.env.docker.example
 *.log
+*.tsbuildinfo
+.tmp/
 .DS_Store
 Thumbs.db
 apps/api/openapi.generated.json

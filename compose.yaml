@@ -1,0 +1,128 @@
+name: irec-v020
+
+services:
+  irec-postgres:
+    container_name: irec-postgres
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: irec
+      POSTGRES_USER: irec
+      POSTGRES_PASSWORD: irec_dev
+    volumes:
+      - irec-fullstack-postgres-data:/var/lib/postgresql/data
+    networks:
+      - irec-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U irec -d irec"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 5s
+    restart: unless-stopped
+
+  irec-redis:
+    container_name: irec-redis
+    image: redis:8-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - irec-fullstack-redis-data:/data
+    networks:
+      - irec-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 3s
+    restart: unless-stopped
+
+  irec-mailpit:
+    container_name: irec-mailpit
+    image: axllent/mailpit:latest
+    ports:
+      - "127.0.0.1:1025:1025"
+      - "127.0.0.1:8025:8025"
+    environment:
+      MP_SMTP_AUTH_ACCEPT_ANY: "1"
+      MP_SMTP_AUTH_ALLOW_INSECURE: "1"
+    networks:
+      - irec-network
+    restart: unless-stopped
+
+  irec-migrate:
+    container_name: irec-migrate
+    image: irec-api:0.2.0-dev
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    env_file:
+      - .env.docker
+    command: ["node", "dist/database/migrate.js"]
+    healthcheck:
+      disable: true
+    depends_on:
+      irec-postgres:
+        condition: service_healthy
+    networks:
+      - irec-network
+    restart: "no"
+
+  irec-api:
+    container_name: irec-api
+    image: irec-api:0.2.0-dev
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    env_file:
+      - .env.docker
+    ports:
+      - "127.0.0.1:3000:3000"
+    depends_on:
+      irec-postgres:
+        condition: service_healthy
+      irec-redis:
+        condition: service_healthy
+      irec-migrate:
+        condition: service_completed_successfully
+      irec-mailpit:
+        condition: service_started
+    networks:
+      - irec-network
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "node -e \"require('http').get('http://127.0.0.1:3000/api/health/ready',r=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))\""
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 10s
+    restart: unless-stopped
+
+  irec-web:
+    container_name: irec-web
+    image: irec-web:0.2.0-dev
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    ports:
+      - "127.0.0.1:4200:80"
+    depends_on:
+      irec-api:
+        condition: service_healthy
+    networks:
+      - irec-network
+    restart: unless-stopped
+
+volumes:
+  irec-fullstack-postgres-data:
+    name: irec-fullstack-postgres-data
+
+  irec-fullstack-redis-data:
+    name: irec-fullstack-redis-data
+
+networks:
+  irec-network:
+    name: irec-fullstack-network
+    driver: bridge

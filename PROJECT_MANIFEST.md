@@ -1,86 +1,52 @@
 # iRec Project Manifest
 
-Foundation: `v0.1.0-stabilized`
+Working candidate: `v0.2.0`
+Integration branch: `integration/v0.2.0`
 
-- `.editorconfig`
-- `.env.example`
-- `.gitignore`
-- `.node-version`
-- `.npmrc`
-- `PROJECT_MANIFEST.md`
-- `README.md`
-- `WORKTREE-QUICKSTART.txt`
-- `WORKTREES.md`
-- `apps/api/README.md`
-- `apps/api/nest-cli.json`
-- `apps/api/package.json`
-- `apps/api/src/app.module.ts`
-- `apps/api/src/health/health.controller.ts`
-- `apps/api/src/main.ts`
-- `apps/api/src/openapi/check.ts`
-- `apps/api/src/openapi/document.ts`
-- `apps/api/src/openapi/export.ts`
-- `apps/api/tsconfig.build.json`
-- `apps/api/tsconfig.json`
-- `apps/web/angular.json`
-- `apps/web/ngsw-config.json`
-- `apps/web/package.json`
-- `apps/web/public/icons/icon-192.png`
-- `apps/web/public/icons/icon-512.png`
-- `apps/web/public/manifest.webmanifest`
-- `apps/web/src/app/app.config.ts`
-- `apps/web/src/app/app.routes.ts`
-- `apps/web/src/app/app.ts`
-- `apps/web/src/index.html`
-- `apps/web/src/main.ts`
-- `apps/web/src/styles.css`
-- `apps/web/tsconfig.app.json`
-- `apps/web/tsconfig.json`
-- `docs/API/CONTRACT-GOVERNANCE.md`
-- `docs/API/OPENAPI-SCALAR.md`
-- `docs/BACKEND/AI-THEMES.md`
-- `docs/BACKEND/AUTH-TOTP.md`
-- `docs/BACKEND/PLAN.md`
-- `docs/BACKEND/R2.md`
-- `docs/BACKEND/YOUTUBE.md`
-- `docs/FRONTEND/PLAN.md`
-- `docs/NONTECH/CHANGELOG.md`
-- `docs/NONTECH/PRODUCT-SCOPE.md`
-- `docs/NONTECH/ROADMAP.md`
-- `docs/NONTECH/USER-FLOWS.md`
-- `docs/README.md`
-- `docs/TECH/ADR/ADR-0001-stack.md`
-- `docs/TECH/ADR/ADR-0002-openapi.md`
-- `docs/TECH/ADR/ADR-0003-r2.md`
-- `docs/TECH/ADR/ADR-0004-youtube.md`
-- `docs/TECH/ADR/ADR-0005-auth.md`
-- `docs/TECH/ADR/ADR-0006-theme.md`
-- `docs/TECH/ADR/README.md`
-- `docs/TECH/ARCHITECTURE.md`
-- `docs/TECH/CHANGELOG.md`
-- `docs/TECH/DATA-MODEL.md`
-- `docs/TECH/DEPLOYMENT.md`
-- `docs/TECH/FOUNDATION-FIXES.md`
-- `docs/TECH/INITIALIZATION.md`
-- `docs/TECH/REQUIREMENTS-TRACEABILITY.md`
-- `docs/TECH/SECURITY.md`
-- `docs/TECH/TESTING.md`
-- `docs/TECH/WORKTREES.md`
-- `docs/VERSIONING.md`
-- `infra/README.md`
-- `infra/docker-compose.dev.yml`
-- `manifest.json`
-- `package.json`
-- `packages/config/README.md`
-- `packages/contracts/package.json`
-- `packages/contracts/src/album.ts`
-- `packages/contracts/src/health.ts`
-- `packages/contracts/src/index.ts`
-- `packages/contracts/src/problem.ts`
-- `packages/contracts/src/theme-manifest.ts`
-- `packages/contracts/tsconfig.json`
-- `packages/ui/README.md`
-- `pnpm-workspace.yaml`
-- `scripts/open-worktrees.ps1`
-- `scripts/setup-worktrees.ps1`
-- `scripts/verify-foundation.ps1`
+## Core
+
+```text
+apps/api       NestJS Identity API
+apps/web       Angular PWA
+packages/contracts  Zod contracts
+```
+
+## Full-stack Docker
+
+```text
+compose.yaml
+.dockerignore
+.env.docker.example
+apps/api/Dockerfile
+apps/web/Dockerfile
+apps/web/nginx.conf
+scripts/generate-docker-env.mjs
+scripts/irec.ps1
+scripts/verify-fullstack-docker.ps1
+```
+
+## Development infrastructure
+
+```text
+infra/docker-compose.dev.yml
+```
+
+## Identity backend
+
+Includes PostgreSQL/Drizzle, Redis, Mailpit/Resend adapter, JWT RS256, rotating refresh tokens, TOTP, recovery codes, trusted devices, rate limiting and OpenAPI 3.1/Scalar.
+
+## Identity frontend
+
+Includes registration/login, email verification, TOTP setup, recovery codes, account recovery, trusted devices, TOTP rotation and HyperFrames onboarding.
+
+## Documentation
+
+Start at:
+
+```text
+docs/PROJECT-STATE.md
+docs/GETTING-STARTED.md
+docs/TECH/INTEGRATION-V020.md
+docs/TECH/FULLSTACK-DOCKER.md
+docs/TECH/RELEASE-V020-CHECKLIST.md
+```

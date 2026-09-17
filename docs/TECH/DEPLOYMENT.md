@@ -1,41 +1,70 @@
-# Despliegue
+# Deployment / ejecución local
 
-## Entornos
+## Alcance actual
 
-- local
-- staging
-- production
+`v0.2.0` implementa **full-stack Docker local para integración, E2E y demo**.
+No representa todavía una arquitectura de producción pública.
 
-## Servicios
+## Modo full-stack
 
-- Web Angular: CDN/edge hosting.
-- API NestJS: contenedor.
-- PostgreSQL administrado.
-- Redis administrado.
-- Media gateway separado.
-- R2 pertenece a cada usuario final.
+```bash
+docker compose up --build -d
+```
 
-## Variables sensibles
+Servicios:
 
-Nunca se versionan:
+```text
+irec-web       Angular + Nginx
+irec-api       NestJS
+irec-migrate   Drizzle one-shot
+irec-postgres  PostgreSQL 17
+irec-redis     Redis 8
+irec-mailpit   SMTP local
+```
 
-- DB URL;
-- Redis URL;
-- cookie/session keys;
-- master encryption key;
-- email credentials;
-- Google OAuth client secret;
-- AI provider key.
+La red interna es `irec-fullstack-network`.
 
-## Health checks
+## Modo híbrido de desarrollo
 
-- `/health/live`
-- `/health/ready`
+Se conserva:
 
-`ready` comprueba dependencias internas críticas, pero no debe depender de R2 de usuarios individuales.
+```text
+infra/docker-compose.dev.yml
+```
 
-## Migraciones
+En este modo PostgreSQL/Redis/Mailpit están en Docker, mientras API/Web se
+ejecutan en host con watch/hot reload.
 
-- migraciones versionadas;
-- ejecutadas antes de tráfico nuevo;
-- nunca modificar una migración ya aplicada en producción.
+No ejecutar ambos modos al mismo tiempo.
+
+## Variables
+
+Host/híbrido:
+
+```text
+.env
+```
+
+Full-stack:
+
+```text
+.env.docker
+```
+
+`.env.docker` nunca entra a Git. `.env.docker.example` sí.
+
+## Producción futura
+
+Antes de un despliegue real deberán separarse, entre otros:
+
+- secretos gestionados externamente;
+- TLS y `COOKIE_SECURE=true`;
+- base de datos administrada o persistencia definida;
+- Redis administrado/persistente según estrategia;
+- Resend en lugar de Mailpit;
+- imágenes con estrategia de registry/tagging;
+- observabilidad;
+- backup/restore;
+- política de migraciones y rollback.
+
+Estas tareas no bloquean el gate local de `v0.2.0`.

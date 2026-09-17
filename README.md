@@ -1,89 +1,133 @@
 # iRec
 
-> Álbumes digitales temáticos para conservar, organizar y compartir recuerdos.
+> PWA para crear, organizar y compartir álbumes digitales temáticos.
 
-iRec es una PWA orientada a la creación de álbumes digitales privados o públicos, donde cada usuario mantiene control sobre su contenido y almacenamiento.
-
-El proyecto combina autenticación passwordless mediante TOTP, almacenamiento BYO con Cloudflare R2, generación temática asistida por IA e integración con YouTube para video y transmisiones en vivo.
-
----
-
-## Estado del proyecto
-
-**Versión actual:** `v0.1.0 — Foundation`
-
-iRec se encuentra actualmente en fase MVP.
-
-La versión `v0.1.0` establece:
-
-- monorepo con pnpm;
-- Angular PWA;
-- API NestJS;
-- contratos compartidos con Zod;
-- OpenAPI 3.1 mediante `zod-openapi`;
-- documentación interactiva con Scalar;
-- infraestructura local para PostgreSQL y Redis;
-- documentación técnica y funcional versionada;
-- estrategia Git Worktrees.
-
----
-
-## Visión
-
-iRec busca resolver un problema simple:
-
-> Los recuerdos digitales suelen terminar dispersos entre dispositivos, servicios de almacenamiento, redes sociales y aplicaciones de mensajería.
-
-iRec permite centralizar la experiencia del álbum sin obligar al usuario a entregar la propiedad de sus archivos a la plataforma.
-
-Cada creador puede conectar su propio almacenamiento Cloudflare R2 y utilizar iRec como capa de experiencia, organización y presentación.
-
----
-
-## Funcionalidades previstas
-
-### Identidad
-
-- registro mediante correo electrónico;
-- verificación de email;
-- autenticación mediante TOTP;
-- Google Authenticator compatible;
-- sin contraseña tradicional;
-- recovery codes;
-- recuperación mediante correo;
-- dispositivos confiables durante 30 días.
-
-### Álbumes
-
-- creación de múltiples álbumes;
-- álbumes públicos o privados;
-- múltiples álbumes por usuario;
-- propietario e invitados;
-- modo edición;
-- moderación de contenido enviado por invitados.
-
-### Fotografías
-
-- almacenamiento en Cloudflare R2;
-- modelo BYO Storage;
-- subida mediante URLs prefirmadas;
-- thumbnails;
-- organización por álbum.
-
-### Inteligencia artificial
-
-La IA podrá analizar las fotografías y generar una propuesta temática basada en:
-
-- contenido visual;
-- fechas;
-- composición;
-- colores;
-- orden cronológico;
-- instrucciones del propietario.
-
-La IA no genera código ejecutable arbitrario.
-
-Genera un:
+## Estado
 
 ```text
-ThemeManifest
+release estable      v0.1.0 — Foundation
+release candidate    v0.2.0 — Identity
+rama de integración  integration/v0.2.0
+```
+
+`main` conserva la versión estable. El backend, frontend y documentación de
+Identity se desarrollan en ramas separadas y se validan juntos en
+`integration/v0.2.0` antes de llegar a `main`.
+
+## Quick Start — proyecto completo con Docker
+
+La ejecución full-stack no requiere Node ni pnpm instalados en el host. Sí
+requiere Git, Docker Desktop y Docker Compose v2.
+
+Primera vez:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\irec.ps1 setup
+```
+
+Levantar iRec completo:
+
+```bash
+docker compose up --build -d
+```
+
+O, si ya tienes Node/pnpm:
+
+```bash
+pnpm irec:dev
+```
+
+URLs:
+
+| Recurso | URL |
+|---|---|
+| Web | http://127.0.0.1:4200 |
+| API | http://127.0.0.1:3000 |
+| Scalar | http://127.0.0.1:3000/reference |
+| OpenAPI | http://127.0.0.1:3000/openapi.json |
+| Mailpit | http://127.0.0.1:8025 |
+| PostgreSQL | 127.0.0.1:15432 |
+| Redis | 127.0.0.1:6379 |
+
+Estado:
+
+```bash
+docker compose ps
+```
+
+Logs:
+
+```bash
+docker compose logs -f
+```
+
+Detener sin borrar datos:
+
+```bash
+docker compose down
+```
+
+> `docker compose down -v` es destructivo: elimina los volúmenes locales del
+> candidato full-stack.
+
+## Arquitectura local full-stack
+
+```text
+Browser
+  │
+  ▼
+irec-web :4200 (Nginx + Angular PWA)
+  │
+  └── /api ──► irec-api :3000 (NestJS)
+                    │
+                    ├──► irec-postgres :5432
+                    ├──► irec-redis :6379
+                    └──► irec-mailpit :1025
+
+irec-migrate
+  └── Drizzle versionado → PostgreSQL → exit 0
+```
+
+## Desarrollo por worktrees
+
+```text
+E:\MVP\iRec                    main
+E:\MVP\iRec-worktrees\backend  feat/backend
+E:\MVP\iRec-worktrees\frontend feat/frontend
+E:\MVP\iRec-worktrees\docs     docs/project
+E:\MVP\iRec-worktrees\v0.2.0   integration/v0.2.0
+```
+
+Los worktrees son una técnica de desarrollo, no un requisito para ejecutar el
+producto. Una persona que solo quiere levantar iRec debe usar el clon integrado
+y Docker.
+
+## Documentación
+
+Punto de entrada:
+
+```text
+docs/README.md
+```
+
+Arranque:
+
+```text
+docs/GETTING-STARTED.md
+```
+
+Integración/release:
+
+```text
+docs/TECH/INTEGRATION-V020.md
+docs/TECH/FULLSTACK-DOCKER.md
+docs/TECH/RELEASE-V020-CHECKLIST.md
+```
+
+API:
+
+```text
+http://127.0.0.1:3000/reference
+```
+
+Zod define contratos, `zod-openapi` genera OpenAPI 3.1 y Scalar lo renderiza.

@@ -1,33 +1,65 @@
+name: irec-infra
+
 services:
-  postgres:
+  irec-postgres:
+    container_name: irec-postgres
     image: postgres:17-alpine
     environment:
       POSTGRES_DB: irec
       POSTGRES_USER: irec
       POSTGRES_PASSWORD: irec_dev
     ports:
-      - "5432:5432"
+      - "15432:5432"
     volumes:
-      - irec_postgres:/var/lib/postgresql/data
+      - irec-postgres-data:/var/lib/postgresql/data
+    networks:
+      - irec-network
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U irec -d irec"]
       interval: 5s
       timeout: 3s
-      retries: 10
+      retries: 20
+      start_period: 5s
+    restart: unless-stopped
 
-  redis:
+  irec-redis:
+    container_name: irec-redis
     image: redis:8-alpine
     ports:
       - "6379:6379"
     command: ["redis-server", "--appendonly", "yes"]
     volumes:
-      - irec_redis:/data
+      - irec-redis-data:/data
+    networks:
+      - irec-network
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
       timeout: 3s
-      retries: 10
+      retries: 20
+      start_period: 3s
+    restart: unless-stopped
+
+  irec-mailpit:
+    container_name: irec-mailpit
+    image: axllent/mailpit:latest
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+    environment:
+      MP_SMTP_AUTH_ACCEPT_ANY: "1"
+      MP_SMTP_AUTH_ALLOW_INSECURE: "1"
+    networks:
+      - irec-network
+    restart: unless-stopped
 
 volumes:
-  irec_postgres:
-  irec_redis:
+  irec-postgres-data:
+    name: irec-postgres-data
+  irec-redis-data:
+    name: irec-redis-data
+
+networks:
+  irec-network:
+    name: irec-network
+    driver: bridge

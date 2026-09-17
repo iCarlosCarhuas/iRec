@@ -1,51 +1,79 @@
-# Estrategia de pruebas
+# Testing y gates
 
-## Pirámide
+## Gates ya aprobados
 
-### Unit
-- schemas Zod;
-- TOTP;
-- recovery codes;
-- permisos;
-- ThemeManifest;
-- mappers.
+```text
+Identity backend       PASSED
+Identity frontend      PASSED
+TOTP HyperFrames QA    PASSED
+```
 
-### Integration
-- PostgreSQL;
-- Redis;
-- presigned R2;
-- OAuth callback;
-- OpenAPI generation.
+## Gate actual — full-stack Docker
 
-### Contract
-- `/openapi.json` debe generarse en CI;
-- snapshot o diff controlado;
-- frontend client/types deben coincidir con la versión del contrato.
+En `integration/v0.2.0`:
 
-### E2E
-- registro -> TOTP -> dashboard;
-- crear álbum -> conectar R2 -> subir foto;
-- privado vs público;
-- propuesta -> aprobar;
-- generar tema;
-- conectar YouTube;
-- borrar álbum.
+```bash
+pnpm verify:docker
+```
 
-## Security tests
+Equivalente directo:
 
-- brute force TOTP;
-- reuse recovery code;
-- expired trusted device;
-- IDOR;
-- path traversal en object keys;
-- SSRF en URLs externas;
-- scopes OAuth;
-- secretos ausentes en logs.
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\verify-fullstack-docker.ps1
+```
 
-## Definition of Done
+Comprueba:
 
-Una historia no se cierra sin:
-- tests relevantes;
-- OpenAPI actualizado si cambia API;
-- changelog correspondiente;
-- documentación afectada.
+```text
+Docker daemon
+.env.docker / compose
+build API/Web
+PostgreSQL healthy
+Redis healthy
+migrate exit 0
+API live
+API ready
+OpenAPI
+Scalar
+Web
+Mailpit
+```
+
+## Gate siguiente — Identity E2E
+
+Después del gate Docker:
+
+```text
+registro por email
+→ Mailpit
+→ verify email
+→ TOTP enroll
+→ TOTP confirm
+→ 10 recovery codes
+→ logout
+→ login email + TOTP
+→ remember device
+→ session restore
+→ trusted devices
+→ recovery email/code
+→ TOTP rotation
+→ TOTP anterior inválido
+```
+
+## Persistencia
+
+Antes del release también debe comprobarse:
+
+```text
+docker compose down
+→ docker compose up -d
+→ usuario/datos locales siguen presentes
+```
+
+`docker compose down -v` no forma parte de una prueba de persistencia porque
+elimina los volúmenes deliberadamente.
+
+## Gate de release
+
+`main` solo recibe `integration/v0.2.0` cuando Docker + E2E + builds/typechecks
+están aprobados.

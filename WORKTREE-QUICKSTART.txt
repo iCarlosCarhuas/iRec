@@ -1,28 +1,85 @@
-iRec — Worktree Quickstart
-==========================
+iRec — WORKTREE / INTEGRATION QUICKSTART
+=======================================
 
-1) Extrae ESTE ZIP de forma que el resultado sea:
+NO SON PROYECTOS DISTINTOS.
+Todos los directorios son checkouts del mismo repositorio Git.
 
-   E:\MVP\iRec\
+ESTABLE
+-------
+E:\MVP\iRec
+branch: main
 
-2) PowerShell:
+TRABAJO V0.2.0
+--------------
+E:\MVP\iRec-worktrees\backend
+branch: feat/backend
 
-   cd E:\MVP\iRec
-   corepack enable
-   pnpm install
+E:\MVP\iRec-worktrees\frontend
+branch: feat/frontend
 
-3) Inicializa Git + worktrees:
+E:\MVP\iRec-worktrees\docs
+branch: docs/project
 
-   Set-ExecutionPolicy -Scope Process Bypass
-   .\scripts\setup-worktrees.ps1
+CANDIDATO COMPLETO
+------------------
+E:\MVP\iRec-worktrees\v0.2.0
+branch: integration/v0.2.0
 
-4) Quedara:
+CREAR INTEGRACION
+-----------------
+Desde E:\MVP\iRec:
 
-   E:\MVP\iRec                         -> main
-   E:\MVP\iRec-worktrees\frontend      -> feat/frontend
-   E:\MVP\iRec-worktrees\backend       -> feat/backend
-   E:\MVP\iRec-worktrees\docs          -> docs/project
+git fetch origin
+git worktree add -b integration/v0.2.0 ../iRec-worktrees/v0.2.0 main
 
-5) Para abrirlos en Windows Terminal:
+cd /e/MVP/iRec-worktrees/v0.2.0
+git merge --no-ff feat/backend
+git merge --no-ff feat/frontend
+git merge --no-ff docs/project
 
-   .\scripts\open-worktrees.ps1
+No copiar carpetas entre worktrees como método de integración.
+Resolver conflictos con criterio y commit.
+
+LEVANTAR PRODUCTO COMPLETO
+--------------------------
+Primera vez:
+
+powershell.exe -ExecutionPolicy Bypass -File ./scripts/irec.ps1 setup
+
+Luego:
+
+docker compose up --build -d
+
+URLs:
+Web       http://127.0.0.1:4200
+API       http://127.0.0.1:3000
+Scalar    http://127.0.0.1:3000/reference
+Mailpit   http://127.0.0.1:8025
+Postgres  127.0.0.1:15432
+Redis     127.0.0.1:6379
+
+DETENER SIN BORRAR DATOS
+------------------------
+docker compose down
+
+DESTRUCTIVO
+-----------
+docker compose down -v
+
+GATE DOCKER
+-----------
+powershell.exe -ExecutionPolicy Bypass -File ./scripts/verify-fullstack-docker.ps1
+
+ORDEN DE RELEASE
+----------------
+backend + frontend + docs
+          ↓
+integration/v0.2.0
+          ↓
+Docker gate
+          ↓
+Identity E2E
+          ↓
+main
+          ↓
+tag v0.2.0

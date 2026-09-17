@@ -1,57 +1,56 @@
-# iRec — Documentación del MVP
+# Documentación iRec
 
-> Fuente de verdad del producto y de la implementación.
+## Punto de entrada
 
-**Versión documental inicial:** `0.1.0`  
-**Fecha:** 2026-09-14  
-**Estado:** Planning / MVP foundation
+Para retomar el proyecto:
 
-## Objetivo
+1. `PROJECT-STATE.md` — estado exacto y próximo gate.
+2. `GETTING-STARTED.md` — cómo levantar iRec.
+3. `TECH/INTEGRATION-V020.md` — cómo se unen las ramas.
+4. `TECH/FULLSTACK-DOCKER.md` — arquitectura Docker.
+5. `TECH/RELEASE-V020-CHECKLIST.md` — cierre de `v0.2.0`.
 
-iRec es una PWA para crear y compartir álbumes digitales temáticos con:
+## API
 
-- acceso sin contraseña mediante correo verificado + TOTP;
-- álbumes públicos o privados;
-- modo edición protegido adicionalmente por código;
-- fotografías almacenadas en Cloudflare R2 aportado por cada creador (BYO Storage);
-- videos y transmisiones gestionados mediante YouTube;
-- moderación del contenido propuesto por invitados;
-- generación y ordenamiento temático asistido por IA;
-- documentación API OpenAPI 3.1 generada desde Zod mediante `zod-openapi`;
-- referencia interactiva de API con Scalar.
+```text
+API/AUTH.md
+API/CONTRACT-GOVERNANCE.md
+API/OPENAPI-SCALAR.md
+```
 
-## Principios
+## Backend
 
-1. **La documentación es parte del producto.**
-2. **Contrato primero:** Zod define validación y contrato; OpenAPI se genera desde esos esquemas.
-3. **No duplicar fuentes de verdad:** la referencia Scalar consume el OpenAPI generado por backend.
-4. **BYO Storage:** iRec no se convierte en custodio central de las fotos.
-5. **Privacidad por defecto:** secretos, TOTP, tokens OAuth y credenciales R2 nunca llegan al frontend en texto plano.
-6. **Cambios trazables:** todo cambio relevante debe reflejarse en `TECH/CHANGELOG.md` y/o `NONTECH/CHANGELOG.md`.
-7. **SemVer:** las versiones del producto siguen MAJOR.MINOR.PATCH.
+```text
+BACKEND/IDENTITY.md
+BACKEND/AUTH-TOTP.md
+BACKEND/R2.md
+BACKEND/AI-THEMES.md
+BACKEND/YOUTUBE.md
+```
 
-## Índice
+## Frontend
 
-- [Product Scope](NONTECH/PRODUCT-SCOPE.md)
-- [User Flows](NONTECH/USER-FLOWS.md)
-- [Roadmap](NONTECH/ROADMAP.md)
-- [Non-technical Changelog](NONTECH/CHANGELOG.md)
-- [System Architecture](TECH/ARCHITECTURE.md)
-- [Security](TECH/SECURITY.md)
-- [Data Model](TECH/DATA-MODEL.md)
-- [Technical Changelog](TECH/CHANGELOG.md)
-- [Frontend Plan](FRONTEND/PLAN.md)
-- [Backend Plan](BACKEND/PLAN.md)
-- [OpenAPI + Scalar](API/OPENAPI-SCALAR.md)
-- [Versioning](VERSIONING.md)
-- [Testing](TECH/TESTING.md)
-- [Deployment](TECH/DEPLOYMENT.md)
-- [ADRs](TECH/ADR/README.md)
+```text
+FRONTEND/PLAN.md
+FRONTEND/TOTP-ONBOARDING.md
+```
 
-## Regla de mantenimiento
+## Técnica
 
-Ninguna feature se considera terminada si cambia el comportamiento o arquitectura y no actualiza la documentación correspondiente.
+```text
+TECH/ARCHITECTURE.md
+TECH/SECURITY.md
+TECH/DATA-MODEL.md
+TECH/DATABASE-MIGRATIONS.md
+TECH/WORKTREES.md
+TECH/DEPLOYMENT.md
+TECH/TESTING.md
+TECH/CHANGELOG.md
+TECH/ADR/
+```
 
-- [Inicializacion del repositorio](TECH/INITIALIZATION.md)
+## Regla documental
 
-- [Estrategia Git Worktrees](TECH/WORKTREES.md)
+- Git/worktrees/release → Markdown del repositorio.
+- API/contracts → Zod → OpenAPI → Scalar.
+- No usar Scalar como reemplazo de la documentación operativa completa.
