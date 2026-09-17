@@ -17,3 +17,18 @@ export function canReadAlbum(input: AlbumReadPolicyInput): boolean {
 export function canUpdateAlbum(ownerId: string, viewerId: string): boolean {
   return ownerId === viewerId;
 }
+
+export function canViewAlbumMembers(
+  ownerId: string,
+  viewerId: string,
+  hasActiveMembership: boolean,
+): boolean {
+  return ownerId === viewerId || hasActiveMembership;
+}
+
+export function canManageAlbumMembers(
+  ownerId: string,
+  viewerId: string,
+): boolean {
+  return ownerId === viewerId;
+}
