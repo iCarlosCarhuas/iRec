@@ -24,7 +24,11 @@ import {
   AlbumContract,
   AlbumIdParamsSchema,
   AlbumListResponseSchema,
+  AlbumMemberParamsSchema,
+  AlbumMemberViewContract,
+  AlbumMembersResponseSchema,
   CreateAlbumInput,
+  InviteAlbumMemberInput,
   UpdateAlbumInput,
 } from '@irec/contracts';
 import { createDocument } from 'zod-openapi';
@@ -359,6 +363,89 @@ Web: http://127.0.0.1:4200 · API: http://127.0.0.1:3000 · Mailpit: http://127.
           },
           '404': {
             description: 'Album no encontrado',
+            content: { 'application/problem+json': { schema: ProblemDetailsSchema } },
+          },
+          ...problemResponses,
+        },
+      },
+    },
+
+
+    '/albums/{albumId}/members': {
+      get: {
+        operationId: 'albumMembersList',
+        tags: ['Albums'],
+        summary: 'Lista miembros; owner o miembro activo',
+        security: [{ accessCookie: [] }],
+        requestParams: { path: AlbumIdParamsSchema },
+        responses: {
+          '200': { description: 'Membresias del album', content: json(AlbumMembersResponseSchema) },
+          '404': {
+            description: 'Album no encontrado o no accesible',
+            content: { 'application/problem+json': { schema: ProblemDetailsSchema } },
+          },
+          ...problemResponses,
+        },
+      },
+    },
+    '/albums/{albumId}/members/invite': {
+      post: {
+        operationId: 'albumMemberInvite',
+        tags: ['Albums'],
+        summary: 'Invita a un usuario registrado; solo owner',
+        security: [{ accessCookie: [] }],
+        requestParams: { path: AlbumIdParamsSchema },
+        requestBody: { required: true, content: json(InviteAlbumMemberInput) },
+        responses: {
+          '201': { description: 'Invitacion creada o ya pendiente', content: json(AlbumMemberViewContract) },
+          '403': {
+            description: 'Solo el owner puede invitar',
+            content: { 'application/problem+json': { schema: ProblemDetailsSchema } },
+          },
+          '409': {
+            description: 'Usuario ya activo o conflicto de membresia',
+            content: { 'application/problem+json': { schema: ProblemDetailsSchema } },
+          },
+          ...problemResponses,
+        },
+      },
+    },
+    '/albums/{albumId}/members/accept': {
+      post: {
+        operationId: 'albumMemberAccept',
+        tags: ['Albums'],
+        summary: 'Acepta la invitacion de la sesion actual',
+        security: [{ accessCookie: [] }],
+        requestParams: { path: AlbumIdParamsSchema },
+        responses: {
+          '200': { description: 'Membresia activada', content: json(AlbumMemberViewContract) },
+          '404': {
+            description: 'Invitacion no encontrada',
+            content: { 'application/problem+json': { schema: ProblemDetailsSchema } },
+          },
+          '409': {
+            description: 'Invitacion no disponible',
+            content: { 'application/problem+json': { schema: ProblemDetailsSchema } },
+          },
+          ...problemResponses,
+        },
+      },
+    },
+    '/albums/{albumId}/members/{userId}': {
+      delete: {
+        operationId: 'albumMemberRemove',
+        tags: ['Albums'],
+        summary: 'Remueve una membresia; solo owner y nunca al owner',
+        security: [{ accessCookie: [] }],
+        requestParams: { path: AlbumMemberParamsSchema },
+        responses: {
+          '200': { description: 'Membresia removida', content: json(SuccessResponseSchema) },
+          '403': {
+            description: 'Solo el owner puede remover miembros',
+            content: { 'application/problem+json': { schema: ProblemDetailsSchema } },
+          },
+          '404': {
+            description: 'Membresia no encontrada',
             content: { 'application/problem+json': { schema: ProblemDetailsSchema } },
           },
           ...problemResponses,

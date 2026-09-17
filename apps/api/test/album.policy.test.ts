@@ -1,9 +1,18 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { CreateAlbumInput, UpdateAlbumInput } from '@irec/contracts';
+import {
+  CreateAlbumInput,
+  InviteAlbumMemberInput,
+  UpdateAlbumInput,
+} from '@irec/contracts';
 
-import { canReadAlbum, canUpdateAlbum } from '../src/albums/album.policy.js';
+import {
+  canManageAlbumMembers,
+  canReadAlbum,
+  canUpdateAlbum,
+  canViewAlbumMembers,
+} from '../src/albums/album.policy.js';
 
 test('CreateAlbumInput defaults visibility to private', () => {
   const parsed = CreateAlbumInput.parse({ title: 'Mi album' });
@@ -12,6 +21,11 @@ test('CreateAlbumInput defaults visibility to private', () => {
 
 test('UpdateAlbumInput rejects an empty patch', () => {
   assert.equal(UpdateAlbumInput.safeParse({}).success, false);
+});
+
+test('InviteAlbumMemberInput normalizes email', () => {
+  const parsed = InviteAlbumMemberInput.parse({ email: '  PERSONA@Example.COM ' });
+  assert.equal(parsed.email, 'persona@example.com');
 });
 
 test('public album is readable anonymously', () => {
@@ -71,4 +85,15 @@ test('private album is readable by owner or active member', () => {
 test('only owner may update an album', () => {
   assert.equal(canUpdateAlbum('owner', 'owner'), true);
   assert.equal(canUpdateAlbum('owner', 'member'), false);
+});
+
+test('owner and active members may view membership roster', () => {
+  assert.equal(canViewAlbumMembers('owner', 'owner', false), true);
+  assert.equal(canViewAlbumMembers('owner', 'member', true), true);
+  assert.equal(canViewAlbumMembers('owner', 'outsider', false), false);
+});
+
+test('only owner may manage memberships', () => {
+  assert.equal(canManageAlbumMembers('owner', 'owner'), true);
+  assert.equal(canManageAlbumMembers('owner', 'member'), false);
 });
