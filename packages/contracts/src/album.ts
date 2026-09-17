@@ -86,3 +86,44 @@ export const AlbumMembersResponseSchema = z.object({
   members: z.array(AlbumMemberViewContract),
 });
 export type AlbumMembersResponse = z.infer<typeof AlbumMembersResponseSchema>;
+
+
+export const AlbumProposalStatus = z.enum(['pending', 'approved', 'rejected']);
+export type AlbumProposalStatus = z.infer<typeof AlbumProposalStatus>;
+
+export const AlbumProposalId = z.string().uuid();
+export type AlbumProposalId = z.infer<typeof AlbumProposalId>;
+
+export const AlbumProposalParamsSchema = z.object({
+  albumId: AlbumId,
+  proposalId: AlbumProposalId,
+});
+export type AlbumProposalParams = z.infer<typeof AlbumProposalParamsSchema>;
+
+export const CreateAlbumProposalInput = z.object({
+  text: z.string().trim().min(1).max(2000),
+});
+export type CreateAlbumProposalInput = z.infer<typeof CreateAlbumProposalInput>;
+
+export const AlbumProposalContract = z.object({
+  id: AlbumProposalId,
+  albumId: AlbumId,
+  proposedBy: z.string().uuid(),
+  text: z.string(),
+  status: AlbumProposalStatus,
+  moderatedBy: z.string().uuid().nullable(),
+  moderatedAt: z.string().datetime().nullable(),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+});
+export type AlbumProposalContract = z.infer<typeof AlbumProposalContract>;
+
+export const AlbumProposalViewContract = AlbumProposalContract.extend({
+  proposerEmail: z.string().email(),
+});
+export type AlbumProposalViewContract = z.infer<typeof AlbumProposalViewContract>;
+
+export const AlbumProposalsResponseSchema = z.object({
+  proposals: z.array(AlbumProposalViewContract),
+});
+export type AlbumProposalsResponse = z.infer<typeof AlbumProposalsResponseSchema>;
