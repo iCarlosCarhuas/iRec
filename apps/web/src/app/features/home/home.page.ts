@@ -10,18 +10,17 @@ import { AuthStore } from '../../core/auth/auth-store.service';
     <main class="page home-page">
       <section class="hero-panel">
         <div class="hero-copy">
-          <p class="eyebrow">iRec · Identity v0.2.0</p>
+          <p class="eyebrow">iRec · Album Core v0.3.0</p>
           <h1>Recuerdos que se sienten tuyos.</h1>
           <p class="hero-lead">
-            Crea albumes digitales tematicos para conservar, ordenar y compartir
-            momentos sin convertir tu identidad en otra contraseña que recordar.
+            Crea albumes digitales tematicos, invita a las personas correctas y
+            decide juntos que momentos forman parte de la historia.
           </p>
 
           <div class="hero-actions">
             @if (auth.authenticated()) {
-              <a class="button primary" routerLink="/settings/security">
-                Abrir mi cuenta
-              </a>
+              <a class="button primary" routerLink="/albums">Abrir mis albumes</a>
+              <a class="button ghost" routerLink="/settings/security">Seguridad</a>
             } @else {
               <a class="button primary" routerLink="/auth">Comenzar</a>
               <a class="button ghost" routerLink="/auth/recover">
@@ -31,46 +30,46 @@ import { AuthStore } from '../../core/auth/auth-store.service';
           </div>
 
           <div class="trust-row">
-            <span>Correo verificado</span>
-            <span>TOTP</span>
-            <span>Sin contraseña tradicional</span>
+            <span>Albumes publicos o privados</span>
+            <span>Miembros</span>
+            <span>Moderacion de propuestas</span>
           </div>
         </div>
 
-        <aside class="identity-preview" aria-label="Resumen de seguridad">
+        <aside class="identity-preview" aria-label="Resumen de Album Core">
           <div class="preview-head">
             <span class="status-dot"></span>
-            <span>Identity</span>
-            <strong>v0.2.0</strong>
+            <span>Album Core</span>
+            <strong>v0.3.0</strong>
           </div>
 
           <div class="security-stack">
             <div class="security-row">
               <span class="security-number">01</span>
               <div>
-                <strong>Verifica tu correo</strong>
-                <small>El enlace dura pocos minutos.</small>
+                <strong>Crea tu album</strong>
+                <small>Titulo, descripcion y visibilidad.</small>
               </div>
             </div>
             <div class="security-row">
               <span class="security-number">02</span>
               <div>
-                <strong>Activa tu autenticador</strong>
-                <small>Google Authenticator o cualquier app TOTP.</small>
+                <strong>Invita a tu gente</strong>
+                <small>El owner conserva el control del album.</small>
               </div>
             </div>
             <div class="security-row">
               <span class="security-number">03</span>
               <div>
-                <strong>Guarda tus recovery codes</strong>
-                <small>Se muestran una sola vez.</small>
+                <strong>Modera propuestas</strong>
+                <small>Aprueba o rechaza antes de incorporar contenido.</small>
               </div>
             </div>
           </div>
 
           <p class="preview-note">
-            Los tokens de sesion viven en cookies HttpOnly. El frontend no los
-            guarda en localStorage.
+            Identity sigue protegiendo cada cuenta con correo verificado, TOTP y
+            cookies HttpOnly.
           </p>
         </aside>
       </section>

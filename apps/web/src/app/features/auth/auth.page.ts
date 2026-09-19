@@ -224,7 +224,7 @@ export class AuthPage {
         return;
       }
 
-      await this.router.navigateByUrl('/settings/security');
+      await this.router.navigateByUrl('/albums');
     } catch (error) {
       this.error.set(
         uiError(error, 'Correo o codigo TOTP invalidos.'),
