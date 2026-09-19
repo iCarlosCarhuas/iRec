@@ -44,6 +44,27 @@ export const routes: Routes = [
     title: 'Recuperar acceso · iRec',
   },
   {
+    path: 'albums',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/albums/albums.page').then((m) => m.AlbumsPage),
+    title: 'Mis albumes · iRec',
+  },
+  {
+    path: 'albums/:albumId/join',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/albums/album-join.page').then((m) => m.AlbumJoinPage),
+    title: 'Aceptar invitacion · iRec',
+  },
+  {
+    path: 'albums/:albumId',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/albums/album-detail.page').then((m) => m.AlbumDetailPage),
+    title: 'Album · iRec',
+  },
+  {
     path: 'settings/security',
     canActivate: [authGuard],
     loadComponent: () =>

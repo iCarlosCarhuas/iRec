@@ -20,6 +20,7 @@ import { AuthStore } from './core/auth/auth-store.service';
 
         <nav class="topnav" aria-label="Navegacion principal">
           @if (auth.authenticated()) {
+            <a class="nav-primary" routerLink="/albums">Mis albumes</a>
             <span class="user-chip">{{ auth.user()?.email }}</span>
             <a routerLink="/settings/security">Seguridad</a>
             <button class="link-button" type="button" (click)="logout()">
