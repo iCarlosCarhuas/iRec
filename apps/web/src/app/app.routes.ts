@@ -44,6 +44,12 @@ export const routes: Routes = [
     title: 'Recuperar acceso · iRec',
   },
   {
+    path: 'a/:albumId',
+    loadComponent: () =>
+      import('./features/albums/public-album.page').then((m) => m.PublicAlbumPage),
+    title: 'Album publico · iRec',
+  },
+  {
     path: 'albums',
     canActivate: [authGuard],
     loadComponent: () =>
