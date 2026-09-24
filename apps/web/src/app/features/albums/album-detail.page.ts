@@ -49,11 +49,21 @@ import { AlbumApiService } from './album-api.service';
             <p>{{ current.description || 'Este album aun no tiene descripcion.' }}</p>
           </div>
 
-          @if (isOwner()) {
-            <button class="button ghost" type="button" (click)="toggleEdit()">
-              {{ editOpen() ? 'Cerrar edicion' : 'Editar album' }}
-            </button>
-          }
+          <div class="album-head-actions">
+            @if (current.visibility === 'public') {
+              <a class="button ghost" [routerLink]="['/a', current.id]">
+                Vista publica
+              </a>
+              <button class="mini-button" type="button" (click)="copyPublicLink()">
+                {{ publicLinkCopied() ? 'Enlace copiado' : 'Copiar enlace' }}
+              </button>
+            }
+            @if (isOwner()) {
+              <button class="button ghost" type="button" (click)="toggleEdit()">
+                {{ editOpen() ? 'Cerrar edicion' : 'Editar album' }}
+              </button>
+            }
+          </div>
         </header>
 
         @if (error()) {
@@ -317,6 +327,7 @@ export class AlbumDetailPage implements OnInit {
   readonly inviteEmail = signal('');
   readonly inviteMessage = signal('');
   readonly invitationCopied = signal(false);
+  readonly publicLinkCopied = signal(false);
 
   readonly proposalText = signal('');
   readonly proposalBusy = signal(false);
@@ -456,6 +467,17 @@ export class AlbumDetailPage implements OnInit {
     await navigator.clipboard.writeText(this.invitationUrl());
     this.invitationCopied.set(true);
     window.setTimeout(() => this.invitationCopied.set(false), 1600);
+  }
+
+  publicAlbumUrl(): string {
+    if (typeof window === 'undefined') return `/a/${this.albumId}`;
+    return `${window.location.origin}/a/${this.albumId}`;
+  }
+
+  async copyPublicLink(): Promise<void> {
+    await navigator.clipboard.writeText(this.publicAlbumUrl());
+    this.publicLinkCopied.set(true);
+    window.setTimeout(() => this.publicLinkCopied.set(false), 1600);
   }
 
   async removeMember(userId: string): Promise<void> {
