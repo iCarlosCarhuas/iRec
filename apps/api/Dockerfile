@@ -11,7 +11,7 @@ COPY . .
 
 RUN pnpm install --frozen-lockfile
 RUN pnpm --filter @irec/contracts build
-RUN pnpm --filter @irec/api build
+RUN rm -rf apps/api/dist apps/api/tsconfig*.tsbuildinfo && pnpm --filter @irec/api build
 
 WORKDIR /workspace/apps/api
 

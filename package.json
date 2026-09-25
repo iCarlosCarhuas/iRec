@@ -1,6 +1,6 @@
 {
   "name": "irec",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "description": "iRec — PWA de albumes digitales tematicos",
   "packageManager": "pnpm@12.4.1",

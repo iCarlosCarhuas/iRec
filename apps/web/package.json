@@ -1,6 +1,6 @@
 {
   "name": "@irec/web",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "scripts": {
     "dev": "ng serve --host 127.0.0.1 --port 4200",
