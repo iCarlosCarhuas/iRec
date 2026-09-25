@@ -5,102 +5,276 @@
 ## Estado
 
 ```text
-release estable      v0.1.0 — Foundation
-release candidate    v0.2.0 — Identity
-rama de integración  integration/v0.2.0
+release estable      v0.3.0 — Album Core
+rama estable         main
+
+historial
+v0.1.0 — Foundation
+v0.2.0 — Identity
+v0.3.0 — Album Core
 ```
 
-`main` conserva la versión estable. El backend, frontend y documentación de
-Identity se desarrollan en ramas separadas y se validan juntos en
-`integration/v0.2.0` antes de llegar a `main`.
+`main` contiene actualmente la release estable `v0.3.0`.
 
-## Quick Start — proyecto completo con Docker
+iRec ya cuenta con una base completa de identidad sin contraseña y con el
+núcleo funcional de álbumes: creación, membresías, propuestas, moderación y
+vista pública.
 
-La ejecución full-stack no requiere Node ni pnpm instalados en el host. Sí
-requiere Git, Docker Desktop y Docker Compose v2.
+## Qué incluye v0.3.0
 
-Primera vez:
+### Identity
+
+- Registro y autenticación sin contraseña.
+- Verificación de correo.
+- TOTP compatible con Google Authenticator.
+- Recovery codes.
+- Recuperación por correo.
+- Trusted devices.
+- JWT RS256 + refresh tokens rotativos.
+- Revocación y protección contra reutilización de refresh tokens.
+
+### Album Core
+
+- Crear múltiples álbumes por usuario.
+- Título y descripción.
+- Visibilidad `public` o `private`.
+- Propietario del álbum.
+- Invitación de miembros registrados.
+- Aceptación de invitaciones.
+- Estados `active`, `invited` y `removed`.
+- Propuestas de contenido por miembros.
+- Moderación owner-only.
+- Estados de propuesta: `pending`, `approved` y `rejected`.
+- UI Angular para gestión del álbum.
+- Vista pública anónima de solo lectura.
+- Los álbumes privados no revelan información mediante la ruta pública.
+
+## Quick Start — Docker
+
+La forma recomendada de ejecutar iRec completo es Docker.
+
+Requisitos:
+
+- Git
+- Docker Desktop
+- Docker Compose v2
+
+No es necesario instalar Node ni pnpm en el host para ejecutar el stack.
+
+### Primera configuración
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\irec.ps1 setup
 ```
 
-Levantar iRec completo:
+### Levantar iRec
 
 ```bash
 docker compose up --build -d
 ```
 
-O, si ya tienes Node/pnpm:
+También puede utilizarse:
 
 ```bash
 pnpm irec:dev
 ```
 
-URLs:
+si Node y pnpm ya están instalados.
+
+## Servicios
 
 | Recurso | URL |
-|---|---|
+| --- | --- |
 | Web | http://127.0.0.1:4200 |
 | API | http://127.0.0.1:3000 |
 | Scalar | http://127.0.0.1:3000/reference |
 | OpenAPI | http://127.0.0.1:3000/openapi.json |
 | Mailpit | http://127.0.0.1:8025 |
-| PostgreSQL | 127.0.0.1:15432 |
-| Redis | 127.0.0.1:6379 |
 
-Estado:
+PostgreSQL y Redis permanecen dentro de la red Docker del proyecto.
+
+## Estado del stack
 
 ```bash
 docker compose ps
 ```
 
-Logs:
+Estado esperado:
+
+```text
+irec-postgres   healthy
+irec-redis      healthy
+irec-mailpit    healthy
+irec-migrate    Exited (0)
+irec-api        healthy
+irec-web        healthy
+```
+
+`irec-migrate` es un proceso one-shot. `Exited (0)` significa que terminó
+correctamente.
+
+## Logs
 
 ```bash
 docker compose logs -f
 ```
 
-Detener sin borrar datos:
+API:
+
+```bash
+docker compose logs -f irec-api
+```
+
+Web:
+
+```bash
+docker compose logs -f irec-web
+```
+
+## Detener iRec
 
 ```bash
 docker compose down
 ```
 
-> `docker compose down -v` es destructivo: elimina los volúmenes locales del
-> candidato full-stack.
+Esto conserva los volúmenes y los datos locales.
 
-## Arquitectura local full-stack
+> No usar `docker compose down -v` salvo que se quiera eliminar
+> intencionalmente la información persistente.
+
+## Arquitectura local
 
 ```text
 Browser
   │
   ▼
-irec-web :4200 (Nginx + Angular PWA)
+irec-web :4200
+Angular PWA + Nginx
   │
-  └── /api ──► irec-api :3000 (NestJS)
-                    │
-                    ├──► irec-postgres :5432
-                    ├──► irec-redis :6379
-                    └──► irec-mailpit :1025
+  └── /api
+        │
+        ▼
+irec-api :3000
+NestJS
+  │
+  ├── PostgreSQL
+  ├── Redis
+  └── Mailpit
 
 irec-migrate
-  └── Drizzle versionado → PostgreSQL → exit 0
+  │
+  └── Drizzle migrations
+        │
+        ▼
+     PostgreSQL
+        │
+        └── exit 0
 ```
 
-## Desarrollo por worktrees
+## Album Core
+
+### Usuario autenticado
 
 ```text
-E:\MVP\iRec                    main
-E:\MVP\iRec-worktrees\backend  feat/backend
-E:\MVP\iRec-worktrees\frontend feat/frontend
-E:\MVP\iRec-worktrees\docs     docs/project
-E:\MVP\iRec-worktrees\v0.2.0   integration/v0.2.0
+/albums
 ```
 
-Los worktrees son una técnica de desarrollo, no un requisito para ejecutar el
-producto. Una persona que solo quiere levantar iRec debe usar el clon integrado
-y Docker.
+Permite listar álbumes, crear álbumes e ingresar al detalle según los permisos
+del usuario.
+
+### Owner
+
+Puede editar el álbum, cambiar su visibilidad, consultar miembros, invitar o
+remover miembros, revisar propuestas y aprobarlas o rechazarlas.
+
+### Member
+
+Puede acceder a álbumes privados donde tiene membresía activa, consultar el
+contexto permitido y crear propuestas.
+
+No puede editar el álbum, administrar miembros ni moderar propuestas.
+
+### Vista pública
+
+```text
+/a/:albumId
+```
+
+Un álbum `public` puede visualizarse sin autenticación.
+
+La vista pública no expone miembros, propuestas, controles de edición ni
+acciones administrativas.
+
+Un álbum `private` y un identificador inexistente muestran un estado genérico
+sin revelar información del álbum.
+
+## API
+
+Documentación interactiva:
+
+```text
+http://127.0.0.1:3000/reference
+```
+
+OpenAPI:
+
+```text
+http://127.0.0.1:3000/openapi.json
+```
+
+Los contratos se definen con Zod y `zod-openapi` genera OpenAPI 3.1.
+
+## Base de datos
+
+iRec utiliza PostgreSQL y Drizzle ORM.
+
+Las migraciones de Album Core están versionadas en:
+
+```text
+apps/api/drizzle/
+```
+
+Incluyen álbumes, membresías, propuestas y moderación.
+
+Las migraciones se aplican mediante `irec-migrate`.
+
+## Data Safety
+
+iRec incluye herramientas para proteger PostgreSQL durante desarrollo y
+migraciones:
+
+```text
+scripts/data/irec-data.ps1
+scripts/data/README.md
+```
+
+Incluyen flujos de status, backup, list, verify, restore-test y restore
+protegido.
+
+Las operaciones destructivas deben ejecutarse explícitamente y con
+confirmación.
+
+## Quality Gates
+
+Album Core dispone de gates incrementales:
+
+```text
+scripts/album/verify-ad1.ps1
+scripts/album/verify-ad2.ps1
+scripts/album/verify-ad3.ps1
+scripts/album/verify-ad4.ps1
+scripts/album/verify-ad5.ps1
+scripts/album/verify-ad6.ps1
+```
+
+Gate final de release:
+
+```text
+scripts/release/verify-v030.ps1
+```
+
+Valida versiones, Docker Compose, contracts, API, tests, OpenAPI, builds y
+reproducibilidad del build Docker.
 
 ## Documentación
 
@@ -110,24 +284,67 @@ Punto de entrada:
 docs/README.md
 ```
 
-Arranque:
+Album API:
 
 ```text
-docs/GETTING-STARTED.md
+docs/API/ALBUMS.md
+docs/API/ALBUM-MEMBERS.md
+docs/API/ALBUM-PROPOSALS.md
 ```
 
-Integración/release:
+Frontend:
 
 ```text
-docs/TECH/INTEGRATION-V020.md
-docs/TECH/FULLSTACK-DOCKER.md
-docs/TECH/RELEASE-V020-CHECKLIST.md
+docs/FRONTEND/ALBUM-UI.md
+docs/FRONTEND/PUBLIC-ALBUM-VIEW.md
 ```
 
-API:
+Release:
 
 ```text
-http://127.0.0.1:3000/reference
+docs/RELEASE/V0.3.0.md
+docs/RELEASE/V0.3.0-E2E.md
 ```
 
-Zod define contratos, `zod-openapi` genera OpenAPI 3.1 y Scalar lo renderiza.
+Changelogs:
+
+```text
+docs/TECH/CHANGELOG.md
+docs/NONTECH/CHANGELOG.md
+```
+
+## Desarrollo con worktrees
+
+El proyecto utiliza ramas de feature y ramas de integración antes de publicar
+una release en `main`.
+
+Los worktrees son una técnica de desarrollo y no son necesarios para una
+persona que solo quiera ejecutar iRec.
+
+Para utilizar la release estable basta con clonar `main` o descargar su ZIP.
+
+## Roadmap
+
+```text
+v0.1.0  Foundation       ✅
+v0.2.0  Identity         ✅
+v0.3.0  Album Core       ✅
+
+v0.4.0  R2 + Photos      ⏭️
+v0.5.0  AI Theme
+v0.6.0  YouTube + Live
+v0.7.0  Hardening
+v1.0.0  MVP
+```
+
+## Release actual
+
+```text
+iRec v0.3.0 — Album Core
+```
+
+Tag:
+
+```text
+v0.3.0
+```
