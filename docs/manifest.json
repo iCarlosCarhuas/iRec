@@ -1,13 +1,16 @@
 {
   "artifact": "iRec documentation",
-  "baseline": "v0.1.0",
-  "working_version": "v0.2.0",
-  "sync_date": "2026-09-15",
+  "baseline": "v0.3.0",
+  "stable_version": "v0.3.0",
+  "working_version": "v0.4.0",
+  "sync_date": "2026-09-25",
+  "integration_branch": "integration/v0.4.0",
+  "current_feature": "chore/v040-r2-foundation",
   "state": {
     "foundation": "released",
-    "identity_backend": "passed",
-    "identity_frontend": "pending",
-    "identity_e2e": "pending",
-    "release_v0.2.0": "pending"
+    "identity": "released_v0.2.0",
+    "album_core": "released_v0.3.0",
+    "r2_photos": "foundation_in_progress",
+    "release_v0.4.0": "not_started"
   }
 }

@@ -16,3 +16,4 @@ Los ADR preservan el **por qué** de decisiones importantes.
 | 0010 | Convención global `irec-*` | Accepted |
 | 0011 | Migraciones SQL versionadas | Accepted |
 | 0012 | Integration branch por release + full-stack Docker local | Accepted |
+| 0013 | Ownership R2 + lifecycle de Photos | Accepted |
