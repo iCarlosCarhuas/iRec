@@ -20,6 +20,21 @@ import {
   TotpRotateRequestSchema,
   TrustedDevicesResponseSchema,
 } from '@irec/contracts';
+import {
+  AlbumContract,
+  AlbumIdParamsSchema,
+  AlbumListResponseSchema,
+  AlbumMemberParamsSchema,
+  AlbumMemberViewContract,
+  AlbumMembersResponseSchema,
+  AlbumProposalParamsSchema,
+  AlbumProposalViewContract,
+  AlbumProposalsResponseSchema,
+  CreateAlbumInput,
+  CreateAlbumProposalInput,
+  InviteAlbumMemberInput,
+  UpdateAlbumInput,
+} from '@irec/contracts';
 import { createDocument } from 'zod-openapi';
 import type { ZodType } from 'zod';
 
@@ -50,7 +65,7 @@ export const openApiDocument = createDocument({
   openapi: '3.1.0',
   info: {
     title: 'iRec API',
-    version: '0.2.0-dev',
+    version: '0.3.0-dev',
     description: `Contrato HTTP de iRec. Zod es la fuente de verdad y Scalar renderiza esta referencia.
 
 ## Quick start local (full-stack Docker)
@@ -79,6 +94,7 @@ Web: http://127.0.0.1:4200 · API: http://127.0.0.1:3000 · Mailpit: http://127.
   tags: [
     { name: 'Health', description: 'Estado del servicio' },
     { name: 'Auth', description: 'Identity passwordless: email + TOTP' },
+    { name: 'Albums', description: 'Album Core: ownership, visibility y membresias' },
   ],
   paths: {
     '/health/live': {
@@ -295,6 +311,245 @@ Web: http://127.0.0.1:4200 · API: http://127.0.0.1:3000 · Mailpit: http://127.
         },
       },
     },
+    '/albums': {
+      post: {
+        operationId: 'albumCreate',
+        tags: ['Albums'],
+        summary: 'Crea un album y registra al creador como owner activo',
+        security: [{ accessCookie: [] }],
+        requestBody: { required: true, content: json(CreateAlbumInput) },
+        responses: {
+          '201': { description: 'Album creado', content: json(AlbumContract) },
+          ...problemResponses,
+        },
+      },
+      get: {
+        operationId: 'albumListMine',
+        tags: ['Albums'],
+        summary: 'Lista albumes propios o con membresia activa',
+        security: [{ accessCookie: [] }],
+        responses: {
+          '200': { description: 'Albumes accesibles', content: json(AlbumListResponseSchema) },
+          ...problemResponses,
+        },
+      },
+    },
+    '/albums/{albumId}': {
+      get: {
+        operationId: 'albumGet',
+        tags: ['Albums'],
+        summary: 'Lee un album publico o un album privado accesible',
+        requestParams: { path: AlbumIdParamsSchema },
+        responses: {
+          '200': { description: 'Album', content: json(AlbumContract) },
+          '404': {
+            description: 'Album inexistente o privado para la sesion',
+            content: { 'application/problem+json': { schema: ProblemDetailsSchema } },
+          },
+          '422': {
+            description: 'Identificador invalido',
+            content: { 'application/problem+json': { schema: ProblemDetailsSchema } },
+          },
+        },
+      },
+      patch: {
+        operationId: 'albumUpdate',
+        tags: ['Albums'],
+        summary: 'Actualiza un album; solo owner',
+        security: [{ accessCookie: [] }],
+        requestParams: { path: AlbumIdParamsSchema },
+        requestBody: { required: true, content: json(UpdateAlbumInput) },
+        responses: {
+          '200': { description: 'Album actualizado', content: json(AlbumContract) },
+          '403': {
+            description: 'Solo el owner puede modificar',
+            content: { 'application/problem+json': { schema: ProblemDetailsSchema } },
+          },
+          '404': {
+            description: 'Album no encontrado',
+            content: { 'application/problem+json': { schema: ProblemDetailsSchema } },
+          },
+          ...problemResponses,
+        },
+      },
+    },
+
+
+    '/albums/{albumId}/members': {
+      get: {
+        operationId: 'albumMembersList',
+        tags: ['Albums'],
+        summary: 'Lista miembros; owner o miembro activo',
+        security: [{ accessCookie: [] }],
+        requestParams: { path: AlbumIdParamsSchema },
+        responses: {
+          '200': { description: 'Membresias del album', content: json(AlbumMembersResponseSchema) },
+          '404': {
+            description: 'Album no encontrado o no accesible',
+            content: { 'application/problem+json': { schema: ProblemDetailsSchema } },
+          },
+          ...problemResponses,
+        },
+      },
+    },
+    '/albums/{albumId}/members/invite': {
+      post: {
+        operationId: 'albumMemberInvite',
+        tags: ['Albums'],
+        summary: 'Invita a un usuario registrado; solo owner',
+        security: [{ accessCookie: [] }],
+        requestParams: { path: AlbumIdParamsSchema },
+        requestBody: { required: true, content: json(InviteAlbumMemberInput) },
+        responses: {
+          '201': { description: 'Invitacion creada o ya pendiente', content: json(AlbumMemberViewContract) },
+          '403': {
+            description: 'Solo el owner puede invitar',
+            content: { 'application/problem+json': { schema: ProblemDetailsSchema } },
+          },
+          '409': {
+            description: 'Usuario ya activo o conflicto de membresia',
+            content: { 'application/problem+json': { schema: ProblemDetailsSchema } },
+          },
+          ...problemResponses,
+        },
+      },
+    },
+    '/albums/{albumId}/members/accept': {
+      post: {
+        operationId: 'albumMemberAccept',
+        tags: ['Albums'],
+        summary: 'Acepta la invitacion de la sesion actual',
+        security: [{ accessCookie: [] }],
+        requestParams: { path: AlbumIdParamsSchema },
+        responses: {
+          '200': { description: 'Membresia activada', content: json(AlbumMemberViewContract) },
+          '404': {
+            description: 'Invitacion no encontrada',
+            content: { 'application/problem+json': { schema: ProblemDetailsSchema } },
+          },
+          '409': {
+            description: 'Invitacion no disponible',
+            content: { 'application/problem+json': { schema: ProblemDetailsSchema } },
+          },
+          ...problemResponses,
+        },
+      },
+    },
+    '/albums/{albumId}/members/{userId}': {
+      delete: {
+        operationId: 'albumMemberRemove',
+        tags: ['Albums'],
+        summary: 'Remueve una membresia; solo owner y nunca al owner',
+        security: [{ accessCookie: [] }],
+        requestParams: { path: AlbumMemberParamsSchema },
+        responses: {
+          '200': { description: 'Membresia removida', content: json(SuccessResponseSchema) },
+          '403': {
+            description: 'Solo el owner puede remover miembros',
+            content: { 'application/problem+json': { schema: ProblemDetailsSchema } },
+          },
+          '404': {
+            description: 'Membresia no encontrada',
+            content: { 'application/problem+json': { schema: ProblemDetailsSchema } },
+          },
+          ...problemResponses,
+        },
+      },
+    },
+
+
+    '/albums/{albumId}/proposals': {
+      post: {
+        operationId: 'albumProposalCreate',
+        tags: ['Albums'],
+        summary: 'Crea una propuesta; solo miembro activo distinto del owner',
+        security: [{ accessCookie: [] }],
+        requestParams: { path: AlbumIdParamsSchema },
+        requestBody: { required: true, content: json(CreateAlbumProposalInput) },
+        responses: {
+          '201': { description: 'Propuesta pendiente creada', content: json(AlbumProposalViewContract) },
+          '403': {
+            description: 'La sesion no puede proponer contenido',
+            content: { 'application/problem+json': { schema: ProblemDetailsSchema } },
+          },
+          '404': {
+            description: 'Album privado no accesible',
+            content: { 'application/problem+json': { schema: ProblemDetailsSchema } },
+          },
+          ...problemResponses,
+        },
+      },
+      get: {
+        operationId: 'albumProposalList',
+        tags: ['Albums'],
+        summary: 'Lista propuestas y su estado; solo owner',
+        security: [{ accessCookie: [] }],
+        requestParams: { path: AlbumIdParamsSchema },
+        responses: {
+          '200': { description: 'Propuestas del album', content: json(AlbumProposalsResponseSchema) },
+          '403': {
+            description: 'Solo el owner puede revisar propuestas',
+            content: { 'application/problem+json': { schema: ProblemDetailsSchema } },
+          },
+          '404': {
+            description: 'Album no encontrado o no accesible',
+            content: { 'application/problem+json': { schema: ProblemDetailsSchema } },
+          },
+          ...problemResponses,
+        },
+      },
+    },
+    '/albums/{albumId}/proposals/{proposalId}/approve': {
+      post: {
+        operationId: 'albumProposalApprove',
+        tags: ['Albums'],
+        summary: 'Aprueba una propuesta pendiente; solo owner',
+        security: [{ accessCookie: [] }],
+        requestParams: { path: AlbumProposalParamsSchema },
+        responses: {
+          '200': { description: 'Propuesta aprobada', content: json(AlbumProposalViewContract) },
+          '403': {
+            description: 'Solo el owner puede moderar',
+            content: { 'application/problem+json': { schema: ProblemDetailsSchema } },
+          },
+          '404': {
+            description: 'Album o propuesta no encontrados',
+            content: { 'application/problem+json': { schema: ProblemDetailsSchema } },
+          },
+          '409': {
+            description: 'La propuesta ya tiene una decision final distinta',
+            content: { 'application/problem+json': { schema: ProblemDetailsSchema } },
+          },
+          ...problemResponses,
+        },
+      },
+    },
+    '/albums/{albumId}/proposals/{proposalId}/reject': {
+      post: {
+        operationId: 'albumProposalReject',
+        tags: ['Albums'],
+        summary: 'Rechaza una propuesta pendiente; solo owner',
+        security: [{ accessCookie: [] }],
+        requestParams: { path: AlbumProposalParamsSchema },
+        responses: {
+          '200': { description: 'Propuesta rechazada', content: json(AlbumProposalViewContract) },
+          '403': {
+            description: 'Solo el owner puede moderar',
+            content: { 'application/problem+json': { schema: ProblemDetailsSchema } },
+          },
+          '404': {
+            description: 'Album o propuesta no encontrados',
+            content: { 'application/problem+json': { schema: ProblemDetailsSchema } },
+          },
+          '409': {
+            description: 'La propuesta ya tiene una decision final distinta',
+            content: { 'application/problem+json': { schema: ProblemDetailsSchema } },
+          },
+          ...problemResponses,
+        },
+      },
+    },
+
   },
   components: {
     securitySchemes: {

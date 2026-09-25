@@ -1191,3 +1191,693 @@ input::placeholder {
     align-items: start;
   }
 }
+
+/* iRec v0.3.0 - AD-5 Album UI */
+.albums-page,
+.album-detail-page {
+  padding-top: 46px;
+}
+
+.albums-head,
+.album-detail-head {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 28px;
+  margin: 22px 0 30px;
+}
+
+.albums-head > div,
+.album-detail-head > div {
+  min-width: 0;
+}
+
+.albums-head h1,
+.album-detail-head h1 {
+  margin: 0;
+  font-size: clamp(42px, 6vw, 72px);
+  letter-spacing: -0.055em;
+  line-height: 0.98;
+}
+
+.albums-head p:not(.eyebrow),
+.album-detail-head p {
+  max-width: 720px;
+  margin: 16px 0 0;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.65;
+}
+
+.album-create-panel,
+.album-edit-panel {
+  margin-bottom: 24px;
+}
+
+.album-form,
+.invite-form,
+.proposal-form {
+  display: grid;
+  gap: 15px;
+}
+
+.album-form {
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1.5fr) minmax(170px, 0.45fr);
+  align-items: end;
+}
+
+.album-form > .notice,
+.album-form > .button-row,
+.album-edit-panel .album-form > button {
+  grid-column: 1 / -1;
+  justify-self: start;
+}
+
+.album-form label,
+.invite-form label,
+.proposal-form label {
+  display: grid;
+  gap: 7px;
+}
+
+.album-form label > span,
+.invite-form label > span,
+.proposal-form label > span {
+  color: #cbd0d8;
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.album-form textarea,
+.proposal-form textarea,
+.album-form select {
+  width: 100%;
+  border: 1px solid var(--border-strong);
+  outline: none;
+  border-radius: 11px;
+  background: #0a0d12;
+  color: var(--text);
+  font: inherit;
+}
+
+.album-form textarea,
+.proposal-form textarea {
+  min-height: 104px;
+  padding: 12px 13px;
+  resize: vertical;
+  line-height: 1.5;
+}
+
+.album-form select {
+  min-height: 48px;
+  padding: 0 12px;
+}
+
+.album-form textarea:focus,
+.proposal-form textarea:focus,
+.album-form select:focus {
+  border-color: #6e7c48;
+  box-shadow: 0 0 0 3px rgba(217, 255, 111, 0.07);
+}
+
+.compact-actions {
+  margin-top: 0;
+}
+
+.album-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.album-card {
+  display: grid;
+  min-height: 290px;
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  background:
+    linear-gradient(150deg, rgba(25, 29, 38, 0.92), rgba(12, 15, 21, 0.96));
+  color: var(--text);
+  text-decoration: none;
+  transition:
+    transform 140ms ease,
+    border-color 140ms ease,
+    background 140ms ease;
+}
+
+.album-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--border-strong);
+  background:
+    linear-gradient(150deg, rgba(31, 36, 46, 0.95), rgba(14, 17, 23, 0.98));
+}
+
+.album-card-top,
+.album-card-foot,
+.album-meta-row,
+.proposal-head,
+.proposal-actions,
+.invite-link-row {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.album-card-top {
+  justify-content: space-between;
+}
+
+.visibility-badge,
+.role-badge,
+.proposal-status,
+.proposal-count {
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  padding: 0 9px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.visibility-badge.public {
+  border-color: rgba(109, 225, 174, 0.25);
+  background: rgba(109, 225, 174, 0.06);
+  color: #b8f1d7;
+}
+
+.role-badge {
+  color: var(--muted-2);
+}
+
+.album-arrow {
+  color: var(--muted-2);
+  font-size: 18px;
+}
+
+.album-card-copy {
+  align-self: center;
+}
+
+.album-card-copy h2 {
+  margin: 0 0 10px;
+  font-size: 26px;
+  letter-spacing: -0.035em;
+}
+
+.album-card-copy p {
+  display: -webkit-box;
+  overflow: hidden;
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.6;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+}
+
+.album-card-foot {
+  align-self: end;
+  justify-content: space-between;
+  color: var(--muted-2);
+  font-size: 10px;
+}
+
+.album-state-panel {
+  min-height: 150px;
+  margin-top: 22px;
+}
+
+.empty-albums {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 18px;
+  align-items: center;
+  margin-top: 22px;
+}
+
+.album-empty-mark {
+  display: grid;
+  width: 54px;
+  height: 54px;
+  place-items: center;
+  border: 1px solid var(--border-strong);
+  border-radius: 17px;
+  color: var(--accent);
+  font-size: 28px;
+}
+
+.empty-albums h2 {
+  margin: 6px 0 6px;
+}
+
+.empty-albums p {
+  margin: 0;
+}
+
+.album-detail-page > .back-link {
+  margin-bottom: 4px;
+}
+
+.album-detail-head {
+  align-items: center;
+}
+
+.album-meta-row {
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.album-inline-notice {
+  margin: -8px 0 18px;
+}
+
+.album-workspace-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  gap: 14px;
+}
+
+.panel-title-row {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.panel-title-row h2,
+.collaboration-panel > h2 {
+  margin: 6px 0 8px;
+}
+
+.quiet-status,
+.proposal-count {
+  color: var(--muted-2);
+}
+
+.member-list,
+.proposal-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 18px;
+}
+
+.member-row {
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr) auto;
+  gap: 11px;
+  align-items: center;
+  padding: 11px;
+  border: 1px solid rgba(255, 255, 255, 0.055);
+  border-radius: 13px;
+  background: rgba(5, 7, 10, 0.24);
+}
+
+.member-avatar {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  border-radius: 12px;
+  background: rgba(217, 255, 111, 0.08);
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.member-copy {
+  display: grid;
+  min-width: 0;
+  gap: 4px;
+}
+
+.member-copy strong {
+  overflow: hidden;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.member-copy small {
+  color: var(--muted-2);
+  font-size: 10px;
+}
+
+.invite-form {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  margin-top: 18px;
+  padding-top: 17px;
+  border-top: 1px solid rgba(255, 255, 255, 0.065);
+}
+
+.invite-result {
+  display: grid;
+  gap: 7px;
+  margin-top: 12px;
+}
+
+.invite-result > span {
+  color: #a9ddc5;
+  font-size: 10px;
+}
+
+.invite-link-row {
+  align-items: stretch;
+}
+
+.invite-link-row code {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  padding: 8px 9px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.2);
+  color: #d9e3de;
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.proposal-list {
+  margin-top: 14px;
+}
+
+.proposal-row {
+  padding: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 14px;
+  background: rgba(6, 8, 12, 0.28);
+}
+
+.proposal-row.decided {
+  opacity: 0.8;
+}
+
+.proposal-head {
+  justify-content: space-between;
+}
+
+.proposal-head strong {
+  min-width: 0;
+  overflow: hidden;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.proposal-row p {
+  margin: 12px 0 8px;
+  color: #d2d7df;
+  white-space: pre-wrap;
+}
+
+.proposal-row > small {
+  color: var(--muted-2);
+  font-size: 10px;
+}
+
+.proposal-status[data-status="pending"] {
+  border-color: rgba(242, 198, 109, 0.24);
+  color: #f8dda7;
+}
+
+.proposal-status[data-status="approved"] {
+  border-color: rgba(109, 225, 174, 0.24);
+  color: #b8f1d7;
+}
+
+.proposal-status[data-status="rejected"] {
+  border-color: rgba(255, 125, 135, 0.24);
+  color: #ffc3c8;
+}
+
+.proposal-actions {
+  margin-top: 12px;
+}
+
+.mini-button.approve {
+  color: #b8f1d7;
+}
+
+.proposal-form {
+  margin-top: 20px;
+}
+
+.proposal-form textarea {
+  min-height: 150px;
+}
+
+.album-join-card {
+  display: grid;
+  gap: 14px;
+}
+
+.album-join-card h1 {
+  margin-bottom: 0;
+}
+
+.album-join-card > p {
+  margin: 0 0 4px;
+  color: var(--muted);
+  line-height: 1.65;
+}
+
+@media (max-width: 920px) {
+  .album-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .album-form,
+  .album-workspace-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .album-form > .notice,
+  .album-form > .button-row,
+  .album-edit-panel .album-form > button {
+    grid-column: auto;
+  }
+}
+
+@media (max-width: 640px) {
+  .albums-page,
+  .album-detail-page {
+    padding-top: 28px;
+  }
+
+  .albums-head,
+  .album-detail-head {
+    display: grid;
+    align-items: start;
+  }
+
+  .albums-head .button,
+  .album-detail-head .button {
+    justify-self: start;
+  }
+
+  .album-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .album-card {
+    min-height: 240px;
+  }
+
+  .empty-albums {
+    grid-template-columns: 1fr;
+  }
+
+  .album-empty-mark {
+    width: 46px;
+    height: 46px;
+  }
+
+  .member-row {
+    grid-template-columns: 36px minmax(0, 1fr);
+  }
+
+  .member-row .mini-button {
+    grid-column: 2;
+    justify-self: start;
+  }
+
+  .invite-form {
+    grid-template-columns: 1fr;
+  }
+
+  .invite-link-row {
+    display: grid;
+  }
+
+  .invite-link-row code {
+    width: 100%;
+  }
+}
+
+
+/* v0.3 AD-6 · Public album share surface */
+.album-head-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+}
+
+.public-album-page {
+  min-height: calc(100vh - 80px);
+  padding-top: clamp(2rem, 6vw, 5rem);
+  padding-bottom: 4rem;
+}
+
+.public-album-shell {
+  width: min(100%, 1040px);
+  margin: 0 auto;
+}
+
+.public-album-state {
+  max-width: 680px;
+  margin: 8vh auto 0;
+  padding: clamp(1.5rem, 4vw, 2.5rem);
+}
+
+.public-album-state h1 {
+  margin: 0.65rem 0 0.8rem;
+  font-size: clamp(2rem, 6vw, 4rem);
+  line-height: 0.98;
+}
+
+.public-album-state p {
+  color: var(--muted);
+  max-width: 56ch;
+}
+
+.public-album-hero {
+  padding: clamp(1rem, 3vw, 2rem) 0 clamp(2rem, 5vw, 4rem);
+  border-bottom: 1px solid var(--border);
+}
+
+.public-album-kicker {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  color: var(--muted-2);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.11em;
+}
+
+.public-album-hero h1 {
+  max-width: 16ch;
+  margin: 1.15rem 0 1rem;
+  font-size: clamp(3rem, 9vw, 7.4rem);
+  line-height: 0.88;
+  letter-spacing: -0.055em;
+  overflow-wrap: anywhere;
+}
+
+.public-album-hero > p {
+  max-width: 60ch;
+  margin: 0;
+  color: var(--muted);
+  font-size: clamp(1rem, 2.2vw, 1.22rem);
+  line-height: 1.65;
+}
+
+.public-album-actions {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-top: 2rem;
+}
+
+.public-album-content {
+  display: grid;
+  grid-template-columns: minmax(200px, 0.8fr) minmax(0, 1.2fr);
+  gap: clamp(1.5rem, 5vw, 4rem);
+  align-items: center;
+  margin-top: 2rem;
+  padding: clamp(1.2rem, 4vw, 2.25rem);
+}
+
+.public-album-content h2 {
+  margin: 0.45rem 0 0.7rem;
+  font-size: clamp(1.7rem, 4vw, 2.7rem);
+  line-height: 1;
+}
+
+.public-album-content p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.65;
+}
+
+.public-album-placeholder {
+  min-height: 240px;
+  display: grid;
+  grid-template-columns: 1fr 0.82fr;
+  grid-template-rows: 1fr 0.76fr;
+  gap: 0.6rem;
+}
+
+.public-album-placeholder span {
+  display: block;
+  min-height: 90px;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background:
+    linear-gradient(145deg, rgba(217, 255, 111, 0.08), transparent 55%),
+    var(--panel-2);
+}
+
+.public-album-placeholder span:first-child {
+  grid-row: 1 / 3;
+}
+
+.public-album-placeholder span:nth-child(2) {
+  background:
+    radial-gradient(circle at 70% 28%, rgba(217, 255, 111, 0.14), transparent 36%),
+    var(--panel-2);
+}
+
+.public-album-footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.6rem 0 0;
+  color: var(--muted-2);
+  font-size: 0.82rem;
+}
+
+.public-album-footer a {
+  color: var(--text);
+  font-weight: 800;
+  text-decoration: none;
+}
+
+@media (max-width: 720px) {
+  .album-head-actions {
+    justify-content: flex-start;
+  }
+
+  .public-album-page {
+    padding-top: 1.25rem;
+  }
+
+  .public-album-content {
+    grid-template-columns: 1fr;
+  }
+
+  .public-album-placeholder {
+    min-height: 190px;
+  }
+
+  .public-album-footer {
+    flex-direction: column;
+  }
+}

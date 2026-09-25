@@ -4,5 +4,8 @@
     "node_modules",
     "dist",
     "**/*.spec.ts"
-  ]
+  ],
+  "compilerOptions": {
+    "incremental": false
+  }
 }

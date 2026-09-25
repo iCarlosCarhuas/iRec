@@ -4,7 +4,46 @@ Cambios de arquitectura, implementación, infraestructura, API, seguridad y depe
 
 ## [Unreleased]
 
-### v0.2.0 — Identity (en integración)
+## [0.3.0] - 2026-09-25
+
+### Album Core
+
+#### Added
+- Dominio persistente de álbumes con propietario, título, descripción y visibilidad `public|private`.
+- Membresías por álbum con roles `owner|member` y estados `active|invited|removed`.
+- Invariante de creación: el propietario queda registrado como miembro `owner/active` dentro de la misma transacción.
+- API para crear, listar, consultar y editar álbumes.
+- API de miembros para listar, invitar por correo, aceptar invitaciones y remover membresías sin borrar el registro.
+- Propuestas de contenido de texto con estados `pending|approved|rejected`.
+- Moderación owner-only para aprobar o rechazar propuestas.
+- UI Angular para listado, creación, detalle, edición, miembros, invitaciones, propuestas y moderación.
+- Ruta de aceptación de invitación autenticada.
+- Vista pública anónima de solo lectura en `/a/:albumId`.
+- Estado público genérico para álbum privado o inexistente, evitando revelar sus datos.
+- Baseline de Data Safety para backup, verificación, restore-test y restore protegido de PostgreSQL.
+- Gates versionados AD-1 a AD-6 y documentación técnica de Album Core.
+
+#### Database
+- Migración aditiva `0001_spotty_forgotten_one.sql` para álbumes y membresías.
+- Migración aditiva `0002_volatile_raza.sql` para propuestas y moderación.
+- Sin operaciones de borrado, truncado o reset como parte del release.
+
+#### Security / Authorization
+- Álbum privado accesible solo por owner o miembro activo.
+- Edición del álbum y administración de miembros restringidas al owner.
+- Creación de propuestas restringida a miembros activos distintos del owner.
+- Moderación restringida al owner.
+- Vista pública no expone roster, propuestas ni controles autenticados.
+
+#### Validation
+- Source gates AD-1 a AD-6 incorporados al repositorio.
+- Gate de release `scripts/release/verify-v030.ps1` para contracts, API, OpenAPI y Web.
+- Matriz Runtime/E2E documentada en `docs/RELEASE/V0.3.0-E2E.md`.
+
+
+## [0.2.0]
+
+### Identity
 
 #### Added
 - Estrategia `integration/vX.Y.Z` para ensamblar release candidates sin usar `main` como área de integración.

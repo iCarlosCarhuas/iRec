@@ -1,4 +1,14 @@
 import {
+  index as irecIndex,
+  pgEnum as irecPgEnum,
+  pgTable as irecPgTable,
+  primaryKey as irecPrimaryKey,
+  text as irecText,
+  timestamp as irecTimestamp,
+  uuid as irecUuid,
+  varchar as irecVarchar,
+} from 'drizzle-orm/pg-core';
+import {
   index,
   pgEnum,
   pgTable,
@@ -80,3 +90,115 @@ export const trustedDevices = pgTable('trusted_devices', {
   uniqueIndex('trusted_devices_token_hash_uq').on(table.tokenHash),
   index('trusted_devices_user_idx').on(table.userId),
 ]);
+
+// -----------------------------------------------------------------------------
+// iRec v0.3.0 - Album Core / AD-1
+// -----------------------------------------------------------------------------
+
+export const albumVisibilityEnum = irecPgEnum('album_visibility', [
+  'public',
+  'private',
+]);
+
+export const albumMemberRoleEnum = irecPgEnum('album_member_role', [
+  'owner',
+  'member',
+]);
+
+export const albumMemberStatusEnum = irecPgEnum('album_member_status', [
+  'active',
+  'invited',
+  'removed',
+]);
+
+export const albums = irecPgTable(
+  'albums',
+  {
+    id: irecUuid('id').defaultRandom().primaryKey(),
+    ownerId: irecUuid('owner_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    title: irecVarchar('title', { length: 160 }).notNull(),
+    description: irecText('description'),
+    visibility: albumVisibilityEnum('visibility').notNull().default('private'),
+    createdAt: irecTimestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: irecTimestamp('updated_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    irecIndex('albums_owner_idx').on(table.ownerId),
+    irecIndex('albums_visibility_idx').on(table.visibility),
+  ],
+);
+
+export const albumMembers = irecPgTable(
+  'album_members',
+  {
+    albumId: irecUuid('album_id')
+      .notNull()
+      .references(() => albums.id, { onDelete: 'cascade' }),
+    userId: irecUuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    role: albumMemberRoleEnum('role').notNull().default('member'),
+    status: albumMemberStatusEnum('status').notNull().default('active'),
+    joinedAt: irecTimestamp('joined_at', { withTimezone: true }),
+    createdAt: irecTimestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: irecTimestamp('updated_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    irecPrimaryKey({ columns: [table.albumId, table.userId] }),
+    irecIndex('album_members_user_status_idx').on(table.userId, table.status),
+    irecIndex('album_members_album_role_idx').on(table.albumId, table.role),
+  ],
+);
+
+// Application invariant for AD-1:
+// every album owner must also have exactly one ACTIVE OWNER membership.
+// The service layer enforces this atomically during album creation.
+// owner_id remains on albums for ownership queries and referential clarity.
+
+// -----------------------------------------------------------------------------
+// iRec v0.3.0 - Proposals & Moderation / AD-4
+// -----------------------------------------------------------------------------
+
+export const albumProposalStatusEnum = irecPgEnum('album_proposal_status', [
+  'pending',
+  'approved',
+  'rejected',
+]);
+
+export const albumProposals = irecPgTable(
+  'album_proposals',
+  {
+    id: irecUuid('id').defaultRandom().primaryKey(),
+    albumId: irecUuid('album_id')
+      .notNull()
+      .references(() => albums.id, { onDelete: 'cascade' }),
+    proposedBy: irecUuid('proposed_by')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    text: irecText('text').notNull(),
+    status: albumProposalStatusEnum('status').notNull().default('pending'),
+    moderatedBy: irecUuid('moderated_by')
+      .references(() => users.id, { onDelete: 'set null' }),
+    moderatedAt: irecTimestamp('moderated_at', { withTimezone: true }),
+    createdAt: irecTimestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: irecTimestamp('updated_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    irecIndex('album_proposals_album_status_idx').on(table.albumId, table.status),
+    irecIndex('album_proposals_proposer_idx').on(table.proposedBy),
+  ],
+);

@@ -8,6 +8,7 @@ import { RedisModule } from './redis/redis.module.js';
 import { SecurityModule } from './security/security.module.js';
 import { MailModule } from './mail/mail.module.js';
 import { AuthModule } from './auth/auth.module.js';
+import { AlbumModule } from './albums/album.module.js';
 import { HealthController } from './health/health.controller.js';
 
 @Module({
@@ -26,6 +27,7 @@ import { HealthController } from './health/health.controller.js';
     SecurityModule,
     MailModule,
     AuthModule,
+    AlbumModule,
   ],
   controllers: [HealthController],
 })

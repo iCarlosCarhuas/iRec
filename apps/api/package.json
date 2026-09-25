@@ -1,6 +1,6 @@
 {
   "name": "@irec/api",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -9,6 +9,8 @@
     "prebuild": "pnpm --filter @irec/contracts build",
     "build": "nest build",
     "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "pnpm test:album",
+    "test:album": "tsx --test test/album.policy.test.ts",
     "preopenapi:check": "pnpm --filter @irec/contracts build",
     "openapi:check": "tsx src/openapi/check.ts",
     "preopenapi:export": "pnpm --filter @irec/contracts build",
