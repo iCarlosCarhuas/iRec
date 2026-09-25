@@ -1,110 +1,141 @@
 # Estado actual — iRec
 
-**Corte:** 2026-09-16  
-**Release estable:** `v0.1.0`  
-**Release candidate:** `v0.2.0 — Identity`
+**Corte:** 2026-09-25
+**Release estable:** `v0.3.0 — Album Core`
+**Release objetivo:** `v0.4.0 — R2 + Photos`
+**Etapa actual:** `R2-0 — R2 + Photos Foundation`
 
-## Ramas/worktrees
+## Estado Git de inicio de v0.4.0
+
+El preflight local confirmó:
+
+```text
+main                        -> 20cfbd7
+integration/v0.4.0          -> 20cfbd7
+chore/v040-r2-foundation    -> 20cfbd7
+v0.3.0 tag                  -> 0a0767c
+```
+
+Worktrees activos para la nueva release:
 
 ```text
 E:\MVP\iRec
 └─ main
-   └─ v0.1.0 estable
 
-E:\MVP\iRec-worktrees\backend
-└─ feat/backend
-   └─ Identity backend ✅
+E:\MVP\iRec-worktrees\v0.4.0
+└─ integration/v0.4.0
 
-E:\MVP\iRec-worktrees\frontend
-└─ feat/frontend
-   └─ Identity frontend + TOTP onboarding ✅
-
-E:\MVP\iRec-worktrees\docs
-└─ docs/project
-   └─ documentación v0.2.0 ✅
-
-E:\MVP\iRec-worktrees\v0.2.0
-└─ integration/v0.2.0
-   └─ candidato completo ⏳
+E:\MVP\iRec-worktrees\r2-foundation
+└─ chore/v040-r2-foundation
 ```
 
-## Gates
+`main` permanece estable. El tag `v0.3.0` no se mueve.
 
-| Gate | Estado |
-|---|---|
-| Backend Identity | ✅ PASSED |
-| Frontend Identity | ✅ PASSED |
-| TOTP onboarding | ✅ PASSED |
-| HyperFrames QA | ✅ PASSED |
-| Integración de las tres ramas | ⏳ pendiente en Git local |
-| Full-stack Docker — implementación | ✅ preparada |
-| Full-stack Docker — runtime gate | ⏳ pendiente |
-| Identity E2E | ⏳ pendiente |
-| Merge a `main` | ⏳ pendiente |
-| Tag `v0.2.0` | ⏳ pendiente |
+## Releases cerradas
 
-## Qué significa "implementación Docker preparada"
+| Release | Alcance | Estado |
+|---|---|---|
+| `v0.1.0` | Foundation | ✅ RELEASED |
+| `v0.2.0` | Identity | ✅ RELEASED |
+| `v0.3.0` | Album Core | ✅ RELEASED |
 
-El candidato contiene:
+## v0.4.0 — R2 + Photos
+
+Objetivo funcional:
+
+> Permitir que un owner conecte su propio Cloudflare R2 y pueda cargar,
+> visualizar y gestionar fotografías dentro de sus álbumes sin convertir a iRec
+> en propietario del almacenamiento.
+
+### R2-0 — Foundation
+
+R2-0 solo fija el estado real del proyecto, arquitectura, decisiones y gate de
+foundation.
+
+No incluye todavía:
+
+- dependencias AWS SDK / S3;
+- tablas `storage_connections` o `album_assets`;
+- migraciones;
+- llamadas reales a Cloudflare R2;
+- presigned URLs funcionales;
+- UI de fotos;
+- cambios Docker.
+
+### Decisiones vigentes
+
+- Cloudflare R2 es BYO Storage.
+- `StorageConnection` pertenece al usuario/owner, no al álbum.
+- una conexión puede reutilizarse entre varios álbumes;
+- un álbum podrá referenciar una conexión de forma nullable para preservar
+  compatibilidad con álbumes v0.3.0;
+- secretos reversibles R2 reutilizarán `CryptoService` AES-256-GCM;
+- los bytes de una foto viajarán normalmente browser -> R2 mediante presigned URL;
+- el backend controla el `object_key`;
+- `album_assets` será independiente de `album_proposals`;
+- owner upload -> `approved`;
+- active member upload -> `pending`;
+- owner modera pending assets;
+- un álbum público muestra únicamente assets `approved`;
+- guest/anonymous upload queda fuera de v0.4.0.
+
+## Plan de release
 
 ```text
-compose.yaml
-apps/api/Dockerfile
-apps/web/Dockerfile
-apps/web/nginx.conf
-scripts/generate-docker-env.mjs
-scripts/irec.ps1
-scripts/verify-fullstack-docker.ps1
+R2-0  Scope + architecture + static foundation gate
+R2-1  Storage connection domain + encrypted credentials
+R2-2  R2 connection validation API
+R2-3  Photo asset domain + migration
+R2-4  Presigned upload + completion validation
+R2-5  Listing/read/delete + moderation
+R2-6  Angular photo UI + public rendering
+R2-7  E2E + hardening + release v0.4.0
 ```
 
-La validación runtime debe ejecutarse en una máquina con Docker Desktop antes
-de marcar el gate como aprobado.
+La secuencia puede ajustarse si el repositorio real obliga a cambiar límites,
+pero no se implementará toda la release en una sola rama.
 
-## Ejecución objetivo
+## Data Safety
 
-Primera vez:
+Antes de cualquier migración de `v0.4.0`:
+
+```text
+review SQL
+   ↓
+backup
+   ↓
+verify
+   ↓
+apply
+   ↓
+runtime validation
+```
+
+No usar como procedimiento normal:
+
+```text
+docker compose down -v
+docker volume rm
+docker system prune --volumes
+DROP DATABASE
+TRUNCATE
+```
+
+R2-0 no modifica datos persistentes.
+
+## Package versions
+
+Durante R2-0 los paquetes permanecen en `0.3.0`. El target de release es
+`v0.4.0`, pero el bump de versión pertenece a la preparación de release, no al
+inicio de desarrollo.
+
+## Próximo gate
+
+Ejecutar desde el worktree `r2-foundation`:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\scripts\irec.ps1 setup
+powershell.exe -ExecutionPolicy Bypass -File .\scripts\storage\verify-r2-0.ps1
 ```
 
-Luego:
-
-```bash
-docker compose up --build -d
-```
-
-Resultado esperado:
-
-```text
-irec-web
-irec-api
-irec-migrate (exit 0)
-irec-postgres
-irec-redis
-irec-mailpit
-```
-
-## URLs
-
-```text
-Web       http://127.0.0.1:4200
-API       http://127.0.0.1:3000
-Scalar    http://127.0.0.1:3000/reference
-Mailpit   http://127.0.0.1:8025
-Postgres  127.0.0.1:15432
-Redis     127.0.0.1:6379
-```
-
-## Próximo movimiento
-
-1. crear `integration/v0.2.0` desde `main`;
-2. merge `feat/backend`;
-3. merge `feat/frontend`;
-4. merge `docs/project`;
-5. aplicar el bloque full-stack sobre integración;
-6. ejecutar `pnpm verify:docker` o el script equivalente;
-7. ejecutar Identity E2E;
-8. solo entonces mergear a `main` y etiquetar `v0.2.0`.
-
-No empezar `v0.3.0` antes de cerrar esta secuencia.
+R2-0 no se considera completado hasta revisar además `git diff`, `git status`,
+typechecks/builds aplicables y hacer merge a `integration/v0.4.0`.

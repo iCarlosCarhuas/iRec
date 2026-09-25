@@ -2,100 +2,105 @@
 
 ## Estado por versión
 
-### v0.2.0 Identity ✅ backend
+### v0.1.0 — Foundation ✅
 
-Módulos implementados:
+Base de monorepo, contratos, infraestructura local y documentación inicial.
 
-```text
-src/
-├─ auth/
-├─ config/
-├─ database/
-├─ health/
-├─ http/
-├─ mail/
-├─ openapi/
-├─ redis/
-└─ security/
-```
+### v0.2.0 — Identity ✅
 
-Identity expone:
+Implementado y liberado:
 
 ```text
-POST   /auth/email/start
-POST   /auth/email/verify
-POST   /auth/totp/enroll
-POST   /auth/totp/confirm
-POST   /auth/login
-GET    /auth/session
-POST   /auth/refresh
-POST   /auth/logout
-POST   /auth/recovery/email
-POST   /auth/recovery/email/verify
-POST   /auth/recovery/code
-POST   /auth/totp/rotate
-POST   /auth/totp/rotate/confirm
-GET    /auth/trusted-devices
-DELETE /auth/trusted-devices/:deviceId
-POST   /auth/trusted-devices/revoke-all
+src/auth/
+src/config/
+src/database/
+src/health/
+src/http/
+src/mail/
+src/openapi/
+src/redis/
+src/security/
 ```
 
-## Siguientes módulos
+Incluye email verificado, TOTP, recovery codes, trusted devices, JWT RS256,
+refresh opaco rotativo, PostgreSQL, Redis y OpenAPI/Scalar.
+
+### v0.3.0 — Album Core ✅
+
+Backend liberado con:
 
 ```text
-albums/
-memberships/
-storage/
-assets/
-moderation/
-themes/
-youtube/
-live/
-notifications/
+POST   /api/albums
+GET    /api/albums
+GET    /api/albums/:albumId
+PATCH  /api/albums/:albumId
+
+GET     /api/albums/:albumId/members
+POST    /api/albums/:albumId/members/invite
+POST    /api/albums/:albumId/members/accept
+DELETE  /api/albums/:albumId/members/:userId
+
+POST /api/albums/:albumId/proposals
+GET  /api/albums/:albumId/proposals
+POST /api/albums/:albumId/proposals/:proposalId/approve
+POST /api/albums/:albumId/proposals/:proposalId/reject
 ```
 
-## Album Core v0.3.0
+No asumir endpoints históricos que no estén presentes en el código real.
+
+## v0.4.0 — R2 + Photos ⏭
+
+La release se divide en iteraciones pequeñas:
 
 ```text
-GET    /albums
-POST   /albums
-GET    /albums/:albumId
-PATCH  /albums/:albumId
-DELETE /albums/:albumId
-POST   /albums/:albumId/edit-mode
+R2-0  Foundation / architecture / static gate
+R2-1  StorageConnection domain + encryption
+R2-2  R2 validation API
+R2-3  Photo asset domain + migration
+R2-4  Presigned upload + completion validation
+R2-5  Listing/read/delete + moderation
+R2-6  Angular integration + public rendering
+R2-7  E2E + hardening + release gate
 ```
 
-## Storage v0.4.0
+### Dirección API conceptual
+
+Las rutas finales se congelan con contratos y controllers reales en cada
+iteración. El diseño parte de estas responsabilidades:
 
 ```text
-GET  /storage-connections
-POST /storage-connections
-POST /storage-connections/:id/test
-POST /albums/:albumId/assets/presign-upload
+/storage-connections
+  list own connections
+  create/update connection metadata securely
+  validate/test connection
+
+/albums/:albumId
+  associate/detach an allowed storage connection
+
+/albums/:albumId/assets
+  reserve/presign upload
+  confirm upload
+  list/read
+  delete owner-controlled assets
+  moderate pending member assets
 ```
 
-## Moderation
+R2-0 no crea estos endpoints.
 
-```text
-GET  /albums/:albumId/submissions
-POST /albums/:albumId/submissions/:id/approve
-POST /albums/:albumId/submissions/:id/reject
-```
+## v0.5.0 — AI Theme
 
-## AI v0.5.0
+Theme generation permanece fuera de v0.4.0.
 
-```text
-POST /albums/:albumId/themes/generate
-POST /albums/:albumId/themes/:themeId/apply
-```
+## v0.6.0 — YouTube + Live
 
-## YouTube v0.6.0
+YouTube/video/live permanecen fuera de v0.4.0.
 
-```text
-GET  /integrations/youtube/connect
-GET  /integrations/youtube/callback
-POST /albums/:albumId/videos
-POST /albums/:albumId/live
-POST /albums/:albumId/live/:id/start
-POST /albums/:albumId/live/:id/stop
-```
+## Reglas de implementación
+
+- contracts/API antes de UI cuando sea posible;
+- authorization explícita y testeable;
+- migraciones aditivas y revisadas antes de apply;
+- backup + verify antes de cambios DB significativos;
+- no secrets en frontend/logs/Git;
+- no mezclar `album_proposals` de texto con `album_assets`;
+- no introducir funcionalidades de v0.5/v0.6 dentro de R2.

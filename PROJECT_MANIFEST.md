@@ -1,15 +1,53 @@
 # iRec Project Manifest
 
-Working candidate: `v0.2.0`
-Integration branch: `integration/v0.2.0`
+Stable release: `v0.3.0 — Album Core`
+Working release: `v0.4.0 — R2 + Photos`
+Integration branch: `integration/v0.4.0`
+Current feature: `chore/v040-r2-foundation`
 
 ## Core
 
 ```text
-apps/api       NestJS Identity API
-apps/web       Angular PWA
-packages/contracts  Zod contracts
+apps/api            NestJS API
+apps/web            Angular PWA
+packages/contracts  Zod shared contracts
 ```
+
+## Released capabilities
+
+### v0.1.0 — Foundation
+
+Monorepo, local infrastructure, contracts, OpenAPI/Scalar and initial delivery baseline.
+
+### v0.2.0 — Identity
+
+Passwordless identity with verified email, TOTP, recovery codes, trusted devices,
+JWT RS256, rotating refresh tokens, PostgreSQL, Redis and Mailpit/local email flow.
+
+### v0.3.0 — Album Core
+
+Albums, owner/member memberships, invitations to existing verified accounts,
+text proposals with moderation, authenticated album UI and read-only public album
+view.
+
+## Current release — v0.4.0 R2 + Photos
+
+The release is in foundation/design stage. R2 and photo code are not implemented
+by R2-0.
+
+Accepted direction:
+
+- BYO Cloudflare R2 per creator/owner;
+- storage connections are owned by users and may be reused by albums;
+- R2 credentials stay server-side and reversible secrets use the existing
+  `CryptoService` AES-256-GCM encryption;
+- uploads use short-lived presigned URLs and normally travel browser -> R2;
+- the API controls object keys;
+- photo assets are separate from v0.3.0 text proposals;
+- owner uploads are approved directly;
+- active-member uploads enter moderation as pending;
+- public albums expose approved photos only;
+- no anonymous/guest uploads in v0.4.0.
 
 ## Full-stack Docker
 
@@ -31,22 +69,22 @@ scripts/verify-fullstack-docker.ps1
 infra/docker-compose.dev.yml
 ```
 
-## Identity backend
-
-Includes PostgreSQL/Drizzle, Redis, Mailpit/Resend adapter, JWT RS256, rotating refresh tokens, TOTP, recovery codes, trusted devices, rate limiting and OpenAPI 3.1/Scalar.
-
-## Identity frontend
-
-Includes registration/login, email verification, TOTP setup, recovery codes, account recovery, trusted devices, TOTP rotation and HyperFrames onboarding.
-
-## Documentation
-
-Start at:
+## Documentation entry points
 
 ```text
 docs/PROJECT-STATE.md
-docs/GETTING-STARTED.md
-docs/TECH/INTEGRATION-V020.md
-docs/TECH/FULLSTACK-DOCKER.md
-docs/TECH/RELEASE-V020-CHECKLIST.md
+docs/BACKEND/R2.md
+docs/BACKEND/PLAN.md
+docs/TECH/ARCHITECTURE.md
+docs/TECH/ADR/ADR-0003-r2.md
+docs/TECH/ADR/ADR-0013-r2-photo-lifecycle.md
 ```
+
+## Release discipline
+
+`main` remains the latest stable released line. Work for `v0.4.0` is integrated
+through `integration/v0.4.0` using isolated feature/worktree branches. Database
+changes require migration review and the Data Safety gate before apply.
+
+Package versions remain `0.3.0` during R2-0. They are not bumped merely because
+work on `v0.4.0` has started.
