@@ -51,7 +51,7 @@ services:
 
   irec-migrate:
     container_name: irec-migrate
-    image: irec-api:0.2.0-dev
+    image: irec-api:0.3.0-dev
     build:
       context: .
       dockerfile: apps/api/Dockerfile
@@ -69,7 +69,7 @@ services:
 
   irec-api:
     container_name: irec-api
-    image: irec-api:0.2.0-dev
+    image: irec-api:0.3.0-dev
     build:
       context: .
       dockerfile: apps/api/Dockerfile
@@ -102,7 +102,7 @@ services:
 
   irec-web:
     container_name: irec-web
-    image: irec-web:0.2.0-dev
+    image: irec-web:0.3.0-dev
     build:
       context: .
       dockerfile: apps/web/Dockerfile

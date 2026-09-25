@@ -20,3 +20,4 @@ docs
 .DS_Store
 Thumbs.db
 apps/api/openapi.generated.json
+**/*.tsbuildinfo

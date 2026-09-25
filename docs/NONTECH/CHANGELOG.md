@@ -4,7 +4,29 @@ Cambios visibles para usuarios, producto, UX o alcance.
 
 ## [Unreleased]
 
-### v0.2.0 — Identity (en integración)
+## [0.3.0] - 2026-09-25
+
+### Album Core
+
+#### Added
+- Los usuarios autenticados pueden crear y administrar múltiples álbumes.
+- Cada álbum puede mantenerse privado o publicarse.
+- El propietario puede invitar a otro usuario registrado al álbum.
+- El invitado puede aceptar su participación y pasar a ser miembro activo.
+- Los miembros pueden proponer contenido para el álbum.
+- El propietario puede aprobar o rechazar esas propuestas.
+- La interfaz muestra funciones distintas según el rol del usuario.
+- Un álbum público puede compartirse mediante un enlace de solo lectura sin iniciar sesión.
+- Un álbum privado no revela su contenido desde el enlace público.
+
+#### Scope
+- Este release cubre identidad + núcleo de álbumes.
+- Fotos/R2, generación temática con IA, YouTube y transmisión en vivo permanecen fuera de v0.3.0.
+
+
+## [0.2.0]
+
+### Identity
 
 #### Added
 - Flujo definido e implementado en backend para registrarse sin contraseña.
@@ -25,15 +47,13 @@ Cambios visibles para usuarios, producto, UX o alcance.
 #### Changed
 - El usuario no gestiona contraseña tradicional.
 - La recuperación de identidad permanece separada de Cloudflare R2.
-- Identity backend está validado; las pantallas frontend todavía no forman
-  parte de una release pública.
+- Identity backend y frontend forman parte de la release v0.2.0.
 
 #### Status
 - Backend: terminado y validado.
 - Frontend: terminado y validado.
 - Onboarding TOTP + HyperFrames: terminado y validado.
-- E2E: pendiente.
-- `v0.2.0`: todavía no liberado.
+- `v0.2.0`: liberado y versionado.
 
 ## [0.1.0] - 2026-09-14
 
