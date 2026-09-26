@@ -3,7 +3,7 @@
 Stable release: `v0.3.0 — Album Core`
 Working release: `v0.4.0 — R2 + Photos`
 Integration branch: `integration/v0.4.0`
-Current feature: `feat/v040-r2-verification`
+Current feature: `feat/v040-photo-domain`
 
 ## Core
 
@@ -32,9 +32,9 @@ view.
 
 ## Current release — v0.4.0 R2 + Photos
 
-R2-0 and R2-1 are integrated. R2-2 adds the real Cloudflare R2 verification
-boundary and authenticated HTTP API for creating, listing and re-testing BYO
-storage connections. Photo assets and presigned uploads remain later iterations.
+R2-0 through R2-2 are integrated. R2-3 introduces the AlbumAsset persistence
+model, visibility/moderation rules and metadata API. Real upload/presign remains
+R2-4 work.
 
 Accepted direction:
 

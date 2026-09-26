@@ -55,8 +55,8 @@ La release se divide en iteraciones pequeñas:
 ```text
 R2-0  Foundation / architecture / static gate ✅
 R2-1  StorageConnection domain + encryption ✅
-R2-2  R2 validation API 🚧
-R2-3  Photo asset domain + migration
+R2-2  R2 validation API ✅
+R2-3  Photo asset domain + migration 🚧
 R2-4  Presigned upload + completion validation
 R2-5  Listing/read/delete + moderation
 R2-6  Angular integration + public rendering
@@ -113,3 +113,27 @@ YouTube/video/live permanecen fuera de v0.4.0.
 - no secrets en frontend/logs/Git;
 - no mezclar `album_proposals` de texto con `album_assets`;
 - no introducir funcionalidades de v0.5/v0.6 dentro de R2.
+
+
+### R2-3 — Photo asset domain
+
+R2-3 introduce `album_assets` como dominio separado de `album_proposals`.
+
+API de esta iteración:
+
+```text
+GET  /api/albums/:albumId/assets
+POST /api/albums/:albumId/assets/:assetId/approve
+POST /api/albums/:albumId/assets/:assetId/reject
+```
+
+No existe `POST /assets` todavía. El registro de metadata queda como boundary
+interno `registerUploaded(...)` para que R2-4 lo invoque solo después de validar
+un objeto real en R2.
+
+Visibilidad:
+
+- owner: todos los assets del álbum;
+- miembro activo: aprobados + sus propios pending/rejected;
+- público/anon en álbum público: solo approved;
+- álbum privado inaccesible: 404.

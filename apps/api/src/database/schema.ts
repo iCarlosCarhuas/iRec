@@ -1,5 +1,7 @@
 import {
+  bigint as irecBigint,
   index as irecIndex,
+  integer as irecInteger,
   pgEnum as irecPgEnum,
   pgTable as irecPgTable,
   primaryKey as irecPrimaryKey,
@@ -239,5 +241,59 @@ export const albumProposals = irecPgTable(
   (table) => [
     irecIndex('album_proposals_album_status_idx').on(table.albumId, table.status),
     irecIndex('album_proposals_proposer_idx').on(table.proposedBy),
+  ],
+);
+
+// -----------------------------------------------------------------------------
+// iRec v0.4.0 - R2 + Photos / R2-3 AlbumAsset domain
+// -----------------------------------------------------------------------------
+
+export const albumAssetStatusEnum = irecPgEnum('album_asset_status', [
+  'pending',
+  'approved',
+  'rejected',
+]);
+
+export const albumAssets = irecPgTable(
+  'album_assets',
+  {
+    id: irecUuid('id').defaultRandom().primaryKey(),
+    albumId: irecUuid('album_id')
+      .notNull()
+      .references(() => albums.id, { onDelete: 'cascade' }),
+    storageConnectionId: irecUuid('storage_connection_id')
+      .notNull()
+      .references(() => storageConnections.id, { onDelete: 'restrict' }),
+    uploadedBy: irecUuid('uploaded_by')
+      .notNull()
+      .references(() => users.id, { onDelete: 'restrict' }),
+    objectKey: irecText('object_key').notNull(),
+    thumbnailObjectKey: irecText('thumbnail_object_key'),
+    originalFilename: irecVarchar('original_filename', { length: 255 }).notNull(),
+    mimeType: irecVarchar('mime_type', { length: 128 }).notNull(),
+    sizeBytes: irecBigint('size_bytes', { mode: 'number' }).notNull(),
+    width: irecInteger('width'),
+    height: irecInteger('height'),
+    checksum: irecVarchar('checksum', { length: 128 }),
+    status: albumAssetStatusEnum('status').notNull().default('pending'),
+    uploadedAt: irecTimestamp('uploaded_at', { withTimezone: true }),
+    moderatedBy: irecUuid('moderated_by').references(() => users.id, {
+      onDelete: 'set null',
+    }),
+    moderatedAt: irecTimestamp('moderated_at', { withTimezone: true }),
+    createdAt: irecTimestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: irecTimestamp('updated_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    irecIndex('album_assets_album_status_idx').on(table.albumId, table.status),
+    irecIndex('album_assets_uploader_idx').on(table.uploadedBy),
+    irecUniqueIndex('album_assets_storage_object_uq').on(
+      table.storageConnectionId,
+      table.objectKey,
+    ),
   ],
 );
