@@ -12,6 +12,8 @@ const requiredPaths = [
   '/auth/session',
   '/auth/recovery/email',
   '/auth/recovery/code',
+  '/storage-connections',
+  '/storage-connections/{connectionId}/test',
 ];
 
 if (openApiDocument.openapi !== '3.1.0') {

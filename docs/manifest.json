@@ -5,12 +5,12 @@
   "working_version": "v0.4.0",
   "sync_date": "2026-09-25",
   "integration_branch": "integration/v0.4.0",
-  "current_feature": "feat/v040-storage-domain",
+  "current_feature": "feat/v040-r2-verification",
   "state": {
     "foundation": "released",
     "identity": "released_v0.2.0",
     "album_core": "released_v0.3.0",
-    "r2_photos": "storage_domain_in_progress",
+    "r2_photos": "r2_verification_in_progress",
     "release_v0.4.0": "not_started",
     "r2_foundation": "integrated"
   }

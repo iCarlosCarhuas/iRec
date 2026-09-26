@@ -30,8 +30,9 @@
 - `v0.5.0`: AI Theme.
 - `v0.6.0`: YouTube para videos/live y media gateway cuando corresponda.
 
-R2-1 agrega el dominio `StorageConnection` y persistencia cifrada en PostgreSQL.
-Todavía no agrega SDK S3/R2 ni tráfico de red hacia Cloudflare.
+R2-1 agregó el dominio `StorageConnection` y persistencia cifrada. R2-2 agrega
+`@aws-sdk/client-s3` únicamente en backend para verificar el bucket BYO mediante
+`HeadBucket`; el frontend nunca recibe las credenciales.
 
 ## Diagrama lógico
 
@@ -77,7 +78,7 @@ Album
 El owner también mantiene una membership `owner/active` como invariante de la
 capa de servicio.
 
-## R2 + Photos — estado R2-1
+## R2 + Photos — estado R2-2
 
 ```text
 User / owner
@@ -92,9 +93,11 @@ User / owner
                        └── moderation state
 ```
 
-`StorageConnection` pertenece al usuario y puede reutilizarse. En R2-1 el source
-introduce `storage_connections` y `albums.storage_connection_id` nullable.
-`AlbumAsset` continúa siendo target de R2-3 y aún no existe en schema.
+`StorageConnection` pertenece al usuario y puede reutilizarse. R2-2 verifica el
+bucket en Cloudflare antes de persistir y permite re-testear conexiones existentes.
+El endpoint S3 estándar se deriva únicamente de un Account ID validado de 32
+hexadecimales. `AlbumAsset` continúa siendo target de R2-3 y aún no existe en
+schema.
 
 ## Monorepo
 

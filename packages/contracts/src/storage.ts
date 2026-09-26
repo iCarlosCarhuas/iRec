@@ -1,5 +1,8 @@
 import { z } from 'zod';
 
+const CloudflareAccountIdPattern = /^[0-9a-f]{32}$/i;
+const R2BucketPattern = /^[a-z0-9](?:[a-z0-9-]{1,61}[a-z0-9])$/;
+
 export const StorageConnectionId = z.string().uuid();
 export type StorageConnectionId = z.infer<typeof StorageConnectionId>;
 
@@ -9,8 +12,22 @@ export const StorageConnectionIdParamsSchema = z.object({
 export type StorageConnectionIdParams = z.infer<typeof StorageConnectionIdParamsSchema>;
 
 export const CreateStorageConnectionInput = z.object({
-  accountId: z.string().trim().min(1).max(64),
-  bucket: z.string().trim().min(1).max(255),
+  accountId: z
+    .string()
+    .trim()
+    .regex(
+      CloudflareAccountIdPattern,
+      'accountId debe ser un Cloudflare Account ID hexadecimal de 32 caracteres',
+    ),
+  bucket: z
+    .string()
+    .trim()
+    .min(3)
+    .max(63)
+    .regex(
+      R2BucketPattern,
+      'bucket solo puede usar minusculas, numeros y guiones, sin guion al inicio o final',
+    ),
   accessKeyId: z.string().trim().min(1).max(256),
   secretAccessKey: z.string().min(1).max(512),
 });

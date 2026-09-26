@@ -9,7 +9,7 @@
     "prebuild": "pnpm --filter @irec/contracts build",
     "build": "nest build",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "pnpm test:album && pnpm test:storage",
+    "test": "pnpm test:album && pnpm test:storage && pnpm test:r2",
     "test:album": "tsx --test test/album.policy.test.ts",
     "preopenapi:check": "pnpm --filter @irec/contracts build",
     "openapi:check": "tsx src/openapi/check.ts",
@@ -18,10 +18,12 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx src/database/migrate.ts",
     "db:studio": "drizzle-kit studio",
-    "test:storage": "tsx --test test/storage.domain.test.ts"
+    "test:storage": "tsx --test test/storage.domain.test.ts",
+    "test:r2": "tsx --test test/storage.r2.test.ts"
   },
   "dependencies": {
     "@irec/contracts": "workspace:*",
+    "@aws-sdk/client-s3": "3.1135.0",
     "@nestjs/common": "^12.0.1",
     "@nestjs/config": "^12.0.0",
     "@nestjs/core": "^12.0.1",
