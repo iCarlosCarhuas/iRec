@@ -21,6 +21,9 @@ import {
   TrustedDevicesResponseSchema,
 } from '@irec/contracts';
 import {
+  AlbumAssetContract,
+  AlbumAssetParamsSchema,
+  AlbumAssetsResponseSchema,
   AlbumContract,
   AlbumIdParamsSchema,
   AlbumListResponseSchema,
@@ -99,6 +102,7 @@ Web: http://127.0.0.1:4200 · API: http://127.0.0.1:3000 · Mailpit: http://127.
     { name: 'Health', description: 'Estado del servicio' },
     { name: 'Auth', description: 'Identity passwordless: email + TOTP' },
     { name: 'Albums', description: 'Album Core: ownership, visibility y membresias' },
+    { name: 'Photos', description: 'Photo asset metadata y moderacion' },
     { name: 'Storage', description: 'Cloudflare R2 BYO: conexiones y verificacion' },
   ],
   paths: {
@@ -555,6 +559,74 @@ Web: http://127.0.0.1:4200 · API: http://127.0.0.1:3000 · Mailpit: http://127.
       },
     },
 
+
+
+    '/albums/{albumId}/assets': {
+      get: {
+        operationId: 'albumAssetList',
+        tags: ['Photos'],
+        summary: 'Lista metadata de fotos visibles para la sesion actual',
+        requestParams: { path: AlbumIdParamsSchema },
+        responses: {
+          '200': { description: 'Assets visibles', content: json(AlbumAssetsResponseSchema) },
+          '404': {
+            description: 'Album no encontrado o no accesible',
+            content: { 'application/problem+json': { schema: ProblemDetailsSchema } },
+          },
+          ...problemResponses,
+        },
+      },
+    },
+    '/albums/{albumId}/assets/{assetId}/approve': {
+      post: {
+        operationId: 'albumAssetApprove',
+        tags: ['Photos'],
+        summary: 'Aprueba un asset pending; solo owner',
+        security: [{ accessCookie: [] }],
+        requestParams: { path: AlbumAssetParamsSchema },
+        responses: {
+          '200': { description: 'Asset aprobado', content: json(AlbumAssetContract) },
+          '403': {
+            description: 'Solo el owner puede moderar',
+            content: { 'application/problem+json': { schema: ProblemDetailsSchema } },
+          },
+          '404': {
+            description: 'Album o asset no encontrados',
+            content: { 'application/problem+json': { schema: ProblemDetailsSchema } },
+          },
+          '409': {
+            description: 'El asset ya tiene una decision final distinta',
+            content: { 'application/problem+json': { schema: ProblemDetailsSchema } },
+          },
+          ...problemResponses,
+        },
+      },
+    },
+    '/albums/{albumId}/assets/{assetId}/reject': {
+      post: {
+        operationId: 'albumAssetReject',
+        tags: ['Photos'],
+        summary: 'Rechaza un asset pending; solo owner',
+        security: [{ accessCookie: [] }],
+        requestParams: { path: AlbumAssetParamsSchema },
+        responses: {
+          '200': { description: 'Asset rechazado', content: json(AlbumAssetContract) },
+          '403': {
+            description: 'Solo el owner puede moderar',
+            content: { 'application/problem+json': { schema: ProblemDetailsSchema } },
+          },
+          '404': {
+            description: 'Album o asset no encontrados',
+            content: { 'application/problem+json': { schema: ProblemDetailsSchema } },
+          },
+          '409': {
+            description: 'El asset ya tiene una decision final distinta',
+            content: { 'application/problem+json': { schema: ProblemDetailsSchema } },
+          },
+          ...problemResponses,
+        },
+      },
+    },
 
     '/storage-connections': {
       post: {

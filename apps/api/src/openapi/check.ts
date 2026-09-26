@@ -12,6 +12,9 @@ const requiredPaths = [
   '/auth/session',
   '/auth/recovery/email',
   '/auth/recovery/code',
+  '/albums/{albumId}/assets',
+  '/albums/{albumId}/assets/{assetId}/approve',
+  '/albums/{albumId}/assets/{assetId}/reject',
   '/storage-connections',
   '/storage-connections/{connectionId}/test',
 ];

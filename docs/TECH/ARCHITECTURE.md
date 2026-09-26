@@ -78,7 +78,7 @@ Album
 El owner también mantiene una membership `owner/active` como invariante de la
 capa de servicio.
 
-## R2 + Photos — estado R2-2
+## R2 + Photos — estado R2-3
 
 ```text
 User / owner
@@ -95,9 +95,11 @@ User / owner
 
 `StorageConnection` pertenece al usuario y puede reutilizarse. R2-2 verifica el
 bucket en Cloudflare antes de persistir y permite re-testear conexiones existentes.
-El endpoint S3 estándar se deriva únicamente de un Account ID validado de 32
-hexadecimales. `AlbumAsset` continúa siendo target de R2-3 y aún no existe en
-schema.
+
+R2-3 materializa `AlbumAsset` en PostgreSQL. El asset conserva el
+`storage_connection_id` y `object_key` usados al subirlo, separados de la
+asociación nullable actual del álbum. El API público de R2-3 expone metadata y
+moderación; los bytes/presigned upload siguen fuera hasta R2-4.
 
 ## Monorepo
 

@@ -3,7 +3,7 @@
 **Corte:** 2026-09-25
 **Release estable:** `v0.3.0 — Album Core`
 **Release objetivo:** `v0.4.0 — R2 + Photos`
-**Etapa actual:** `R2-2 — R2 Connection Verification`
+**Etapa actual:** `R2-3 — Photo Asset Domain`
 
 ## Estado Git de inicio de v0.4.0
 
@@ -11,8 +11,8 @@ El preflight local confirmó:
 
 ```text
 main                        -> 20cfbd7
-integration/v0.4.0          -> ca103e2
-feat/v040-r2-verification  -> ca103e2
+integration/v0.4.0          -> f23b895
+feat/v040-photo-domain     -> f23b895
 v0.3.0 tag                  -> 0a0767c
 ```
 
@@ -28,8 +28,8 @@ E:\MVP\iRec-worktrees\v0.4.0
 E:\MVP\iRec-worktrees\r2-foundation
 └─ chore/v040-r2-foundation (R2-0 integrado)
 
-E:\MVP\iRec-worktrees\r2-verification
-└─ feat/v040-r2-verification
+E:\MVP\iRec-worktrees\photo-domain
+└─ feat/v040-photo-domain
 ```
 
 `main` permanece estable. El tag `v0.3.0` no se mueve.
@@ -61,21 +61,28 @@ Integrado en `integration/v0.4.0` mediante `ca103e2`. Incluye contratos,
 `storage_connections`, `albums.storage_connection_id` nullable, cifrado con
 `CryptoService`, ownership, migración y Data Safety gate.
 
-### R2-2 — R2 Connection Verification 🚧
+### R2-2 — R2 Connection Verification ✅
 
-Esta iteración agrega:
+Integrado en `integration/v0.4.0` mediante `f23b895`. Incluye cliente
+S3-compatible, `HeadBucket`, API autenticada para crear/listar/re-testear
+conexiones, rate limiting, OpenAPI y tests.
 
-- `@aws-sdk/client-s3`;
-- endpoint R2 estándar por Account ID con `region=auto`;
-- `HeadBucket` sin side effects para validar cuenta/bucket/credenciales;
-- `POST /api/storage-connections`;
-- `GET /api/storage-connections`;
-- `POST /api/storage-connections/:connectionId/test`;
-- rate limiting por usuario/IP;
-- OpenAPI/Scalar y tests.
+### R2-3 — Photo Asset Domain 🚧
 
-No introduce nuevas tablas ni migraciones y todavía no incluye `album_assets`,
-presigned upload, fotos ni UI Angular.
+Esta iteración introduce:
+
+- enum `album_asset_status`;
+- tabla `album_assets`;
+- metadata de objeto R2 y thumbnail;
+- lifecycle `pending / approved / rejected`;
+- owner upload -> `approved`;
+- active member upload -> `pending`;
+- listado con visibilidad por album/status/uploader;
+- moderación owner-only;
+- registro de upload como boundary interno, sin endpoint público de creación;
+- contratos, OpenAPI, tests y gate.
+
+R2-3 no sube bytes ni genera presigned URLs. Esa responsabilidad queda en R2-4.
 
 R2-0 no incluyó:
 
@@ -156,13 +163,20 @@ inicio de desarrollo.
 
 ## Próximo gate
 
-Desde `r2-verification`:
+Desde `photo-domain`:
 
 ```powershell
-powershell.exe -ExecutionPolicy Bypass -File .\scripts\storage\verify-r2-2-source.ps1
+powershell.exe -ExecutionPolicy Bypass -File .\scripts\storage\verify-r2-3-source.ps1
 ```
 
-Después ejecutar `pnpm install`, contracts build, API typecheck/tests/build,
-`pnpm --filter @irec/api openapi:check`, Web typecheck y `git diff --check`.
+Después: contracts build, API typecheck/tests/build, OpenAPI check, Web typecheck
+y `git diff --check`.
 
-R2-2 no ejecuta `db:generate` ni `db:migrate`.
+Si el source gate queda verde:
+
+```bash
+pnpm --filter @irec/api db:generate
+```
+
+Revisar el SQL `0004` y detenerse. Antes de aplicar la migración se repite el
+Data Safety gate: backup + verify + restore-test.
