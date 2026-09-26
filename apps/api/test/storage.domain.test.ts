@@ -8,25 +8,49 @@ import {
 
 import { canManageStorageConnection } from '../src/storage/storage.policy.js';
 
-test('CreateStorageConnectionInput normalizes non-secret identifiers', () => {
+const accountId = '0123456789abcdef0123456789abcdef';
+
+test('CreateStorageConnectionInput normalizes valid R2 identifiers', () => {
   const parsed = CreateStorageConnectionInput.parse({
-    accountId: '  account-123  ',
+    accountId: `  ${accountId.toUpperCase()}  `,
     bucket: '  family-album  ',
     accessKeyId: '  key-id  ',
     secretAccessKey: ' secret-with-spaces ',
   });
 
-  assert.equal(parsed.accountId, 'account-123');
+  assert.equal(parsed.accountId, accountId.toUpperCase());
   assert.equal(parsed.bucket, 'family-album');
   assert.equal(parsed.accessKeyId, 'key-id');
   assert.equal(parsed.secretAccessKey, ' secret-with-spaces ');
+});
+
+test('CreateStorageConnectionInput rejects unsafe account and bucket values', () => {
+  assert.equal(
+    CreateStorageConnectionInput.safeParse({
+      accountId: 'example.com',
+      bucket: 'family-album',
+      accessKeyId: 'key',
+      secretAccessKey: 'secret',
+    }).success,
+    false,
+  );
+
+  assert.equal(
+    CreateStorageConnectionInput.safeParse({
+      accountId,
+      bucket: 'Family_Album',
+      accessKeyId: 'key',
+      secretAccessKey: 'secret',
+    }).success,
+    false,
+  );
 });
 
 test('StorageConnectionContract never exposes credential fields', () => {
   const parsed = StorageConnectionContract.parse({
     id: '11111111-1111-4111-8111-111111111111',
     ownerId: '22222222-2222-4222-8222-222222222222',
-    accountId: 'account-123',
+    accountId,
     bucket: 'family-album',
     lastVerifiedAt: '2026-09-25T20:00:00.000Z',
     createdAt: '2026-09-25T20:00:00.000Z',

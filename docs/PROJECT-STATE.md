@@ -3,7 +3,7 @@
 **Corte:** 2026-09-25
 **Release estable:** `v0.3.0 — Album Core`
 **Release objetivo:** `v0.4.0 — R2 + Photos`
-**Etapa actual:** `R2-1 — Storage Connection Domain`
+**Etapa actual:** `R2-2 — R2 Connection Verification`
 
 ## Estado Git de inicio de v0.4.0
 
@@ -11,8 +11,8 @@ El preflight local confirmó:
 
 ```text
 main                        -> 20cfbd7
-integration/v0.4.0          -> f96188c
-feat/v040-storage-domain    -> f96188c
+integration/v0.4.0          -> ca103e2
+feat/v040-r2-verification  -> ca103e2
 v0.3.0 tag                  -> 0a0767c
 ```
 
@@ -28,8 +28,8 @@ E:\MVP\iRec-worktrees\v0.4.0
 E:\MVP\iRec-worktrees\r2-foundation
 └─ chore/v040-r2-foundation (R2-0 integrado)
 
-E:\MVP\iRec-worktrees\storage-domain
-└─ feat/v040-storage-domain
+E:\MVP\iRec-worktrees\r2-verification
+└─ feat/v040-r2-verification
 ```
 
 `main` permanece estable. El tag `v0.3.0` no se mueve.
@@ -55,24 +55,27 @@ Objetivo funcional:
 Integrado en `integration/v0.4.0` mediante `f96188c`. Fijó estado, arquitectura,
 decisiones y el gate de foundation.
 
-### R2-1 — Storage Connection Domain 🚧
+### R2-1 — Storage Connection Domain ✅
 
-Esta iteración introduce en source:
+Integrado en `integration/v0.4.0` mediante `ca103e2`. Incluye contratos,
+`storage_connections`, `albums.storage_connection_id` nullable, cifrado con
+`CryptoService`, ownership, migración y Data Safety gate.
 
-- contratos `StorageConnection`;
-- tabla `storage_connections`;
-- `albums.storage_connection_id` nullable;
-- cifrado de Access Key ID y Secret Access Key con `CryptoService`;
-- servicio interno para persistir solo conexiones ya validadas;
-- ownership y tests del dominio.
+### R2-2 — R2 Connection Verification 🚧
 
-Todavía no incluye:
+Esta iteración agrega:
 
-- AWS SDK / llamadas a Cloudflare;
-- endpoint público para crear conexiones;
-- validación real del bucket;
-- `album_assets`;
-- UI.
+- `@aws-sdk/client-s3`;
+- endpoint R2 estándar por Account ID con `region=auto`;
+- `HeadBucket` sin side effects para validar cuenta/bucket/credenciales;
+- `POST /api/storage-connections`;
+- `GET /api/storage-connections`;
+- `POST /api/storage-connections/:connectionId/test`;
+- rate limiting por usuario/IP;
+- OpenAPI/Scalar y tests.
+
+No introduce nuevas tablas ni migraciones y todavía no incluye `album_assets`,
+presigned upload, fotos ni UI Angular.
 
 R2-0 no incluyó:
 
@@ -153,12 +156,13 @@ inicio de desarrollo.
 
 ## Próximo gate
 
-Desde `storage-domain` ejecutar primero el source gate:
+Desde `r2-verification`:
 
 ```powershell
-powershell.exe -ExecutionPolicy Bypass -File .\scripts\storage\verify-r2-1-source.ps1
+powershell.exe -ExecutionPolicy Bypass -File .\scripts\storage\verify-r2-2-source.ps1
 ```
 
-Luego ejecutar contracts build, API typecheck/tests/build y `git diff --check`.
-Solo después generar la migración con Drizzle. La migración generada debe revisarse
-antes de cualquier apply y antes de tocar PostgreSQL debe existir backup nuevo + verify.
+Después ejecutar `pnpm install`, contracts build, API typecheck/tests/build,
+`pnpm --filter @irec/api openapi:check`, Web typecheck y `git diff --check`.
+
+R2-2 no ejecuta `db:generate` ni `db:migrate`.

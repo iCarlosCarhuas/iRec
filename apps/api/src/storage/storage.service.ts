@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { and, asc, eq } from 'drizzle-orm';
 import type {
   CreateStorageConnectionInput,
@@ -29,33 +33,41 @@ export class StorageConnectionService {
     private readonly crypto: CryptoService,
   ) {}
 
-  /**
-   * Persistence boundary for a connection that has already passed the R2
-   * validation flow. R2-1 does not expose this method through HTTP and does not
-   * perform network validation itself; R2-2 owns that responsibility.
-   */
   async persistVerified(
     ownerId: string,
     input: CreateStorageConnectionInput,
     verifiedAt: Date,
   ): Promise<StorageConnectionContract> {
     const now = new Date();
-    const [row] = await this.dbs.db
-      .insert(storageConnections)
-      .values({
-        ownerId,
-        accountId: input.accountId,
-        bucket: input.bucket,
-        accessKeyIdEncrypted: this.crypto.encrypt(input.accessKeyId),
-        secretAccessKeyEncrypted: this.crypto.encrypt(input.secretAccessKey),
-        lastVerifiedAt: verifiedAt,
-        createdAt: now,
-        updatedAt: now,
-      })
-      .returning();
 
-    if (!row) throw new Error('No se pudo guardar la conexion de almacenamiento.');
-    return this.toContract(row);
+    try {
+      const [row] = await this.dbs.db
+        .insert(storageConnections)
+        .values({
+          ownerId,
+          accountId: input.accountId,
+          bucket: input.bucket,
+          accessKeyIdEncrypted: this.crypto.encrypt(input.accessKeyId),
+          secretAccessKeyEncrypted: this.crypto.encrypt(input.secretAccessKey),
+          lastVerifiedAt: verifiedAt,
+          createdAt: now,
+          updatedAt: now,
+        })
+        .returning();
+
+      if (!row) throw new Error('No se pudo guardar la conexion de almacenamiento.');
+      return this.toContract(row);
+    } catch (error) {
+      if (this.isUniqueViolation(error)) {
+        throw new ConflictException({
+          type: 'https://irec.app/problems/storage-connection-conflict',
+          title: 'Storage connection already exists',
+          status: 409,
+          detail: 'Ya existe una conexion para esta cuenta y bucket.',
+        });
+      }
+      throw error;
+    }
   }
 
   async listForOwner(ownerId: string): Promise<StorageConnectionsResponse> {
@@ -96,6 +108,29 @@ export class StorageConnectionService {
     };
   }
 
+  async markVerified(
+    ownerId: string,
+    connectionId: string,
+    verifiedAt: Date,
+  ): Promise<StorageConnectionContract> {
+    const [row] = await this.dbs.db
+      .update(storageConnections)
+      .set({
+        lastVerifiedAt: verifiedAt,
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(storageConnections.id, connectionId),
+          eq(storageConnections.ownerId, ownerId),
+        ),
+      )
+      .returning();
+
+    if (!row) throw this.notFound();
+    return this.toContract(row);
+  }
+
   async requireOwned(
     ownerId: string,
     connectionId: string,
@@ -125,6 +160,15 @@ export class StorageConnectionService {
       createdAt: row.createdAt.toISOString(),
       updatedAt: row.updatedAt.toISOString(),
     };
+  }
+
+  private isUniqueViolation(error: unknown): boolean {
+    return (
+      typeof error === 'object' &&
+      error !== null &&
+      'code' in error &&
+      (error as { code?: unknown }).code === '23505'
+    );
   }
 
   private notFound(): NotFoundException {

@@ -3,7 +3,7 @@
 Stable release: `v0.3.0 — Album Core`
 Working release: `v0.4.0 — R2 + Photos`
 Integration branch: `integration/v0.4.0`
-Current feature: `feat/v040-storage-domain`
+Current feature: `feat/v040-r2-verification`
 
 ## Core
 
@@ -32,9 +32,9 @@ view.
 
 ## Current release — v0.4.0 R2 + Photos
 
-R2-0 foundation is integrated. R2-1 introduces the StorageConnection domain,
-encrypted credential persistence boundary and nullable album association in source.
-Cloudflare validation and public HTTP endpoints remain R2-2 work.
+R2-0 and R2-1 are integrated. R2-2 adds the real Cloudflare R2 verification
+boundary and authenticated HTTP API for creating, listing and re-testing BYO
+storage connections. Photo assets and presigned uploads remain later iterations.
 
 Accepted direction:
 

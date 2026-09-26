@@ -54,8 +54,8 @@ La release se divide en iteraciones pequeñas:
 
 ```text
 R2-0  Foundation / architecture / static gate ✅
-R2-1  StorageConnection domain + encryption 🚧
-R2-2  R2 validation API
+R2-1  StorageConnection domain + encryption ✅
+R2-2  R2 validation API 🚧
 R2-3  Photo asset domain + migration
 R2-4  Presigned upload + completion validation
 R2-5  Listing/read/delete + moderation
@@ -85,9 +85,16 @@ iteración. El diseño parte de estas responsabilidades:
   moderate pending member assets
 ```
 
-R2-1 tampoco expone todavía creación HTTP de conexiones. Prepara contratos,
-persistencia cifrada y ownership. R2-2 agrega validación real de Cloudflare y
-recién entonces el controller público correspondiente.
+R2-1 dejó contratos, persistencia cifrada y ownership. R2-2 agrega el controller
+público autenticado y la validación real de Cloudflare R2 antes de persistir:
+
+```text
+POST /api/storage-connections
+GET  /api/storage-connections
+POST /api/storage-connections/:connectionId/test
+```
+
+R2-2 no introduce schema ni migración nueva.
 
 ## v0.5.0 — AI Theme
 

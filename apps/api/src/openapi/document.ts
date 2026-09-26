@@ -34,6 +34,10 @@ import {
   CreateAlbumProposalInput,
   InviteAlbumMemberInput,
   UpdateAlbumInput,
+  CreateStorageConnectionInput,
+  StorageConnectionContract,
+  StorageConnectionIdParamsSchema,
+  StorageConnectionsResponseSchema,
 } from '@irec/contracts';
 import { createDocument } from 'zod-openapi';
 import type { ZodType } from 'zod';
@@ -95,6 +99,7 @@ Web: http://127.0.0.1:4200 · API: http://127.0.0.1:3000 · Mailpit: http://127.
     { name: 'Health', description: 'Estado del servicio' },
     { name: 'Auth', description: 'Identity passwordless: email + TOTP' },
     { name: 'Albums', description: 'Album Core: ownership, visibility y membresias' },
+    { name: 'Storage', description: 'Cloudflare R2 BYO: conexiones y verificacion' },
   ],
   paths: {
     '/health/live': {
@@ -543,6 +548,60 @@ Web: http://127.0.0.1:4200 · API: http://127.0.0.1:3000 · Mailpit: http://127.
           },
           '409': {
             description: 'La propuesta ya tiene una decision final distinta',
+            content: { 'application/problem+json': { schema: ProblemDetailsSchema } },
+          },
+          ...problemResponses,
+        },
+      },
+    },
+
+
+    '/storage-connections': {
+      post: {
+        operationId: 'storageConnectionCreate',
+        tags: ['Storage'],
+        summary: 'Valida R2 y guarda una conexion cifrada solo si la verificacion pasa',
+        security: [{ accessCookie: [] }],
+        requestBody: { required: true, content: json(CreateStorageConnectionInput) },
+        responses: {
+          '201': { description: 'Conexion R2 verificada y guardada', content: json(StorageConnectionContract) },
+          '409': {
+            description: 'Ya existe una conexion para esa cuenta y bucket',
+            content: { 'application/problem+json': { schema: ProblemDetailsSchema } },
+          },
+          '502': {
+            description: 'Cloudflare R2 no disponible o timeout',
+            content: { 'application/problem+json': { schema: ProblemDetailsSchema } },
+          },
+          ...problemResponses,
+        },
+      },
+      get: {
+        operationId: 'storageConnectionList',
+        tags: ['Storage'],
+        summary: 'Lista conexiones R2 propias sin exponer credenciales',
+        security: [{ accessCookie: [] }],
+        responses: {
+          '200': { description: 'Conexiones del owner actual', content: json(StorageConnectionsResponseSchema) },
+          ...problemResponses,
+        },
+      },
+    },
+    '/storage-connections/{connectionId}/test': {
+      post: {
+        operationId: 'storageConnectionTest',
+        tags: ['Storage'],
+        summary: 'Vuelve a validar una conexion R2 propia y actualiza lastVerifiedAt',
+        security: [{ accessCookie: [] }],
+        requestParams: { path: StorageConnectionIdParamsSchema },
+        responses: {
+          '200': { description: 'Conexion R2 validada nuevamente', content: json(StorageConnectionContract) },
+          '404': {
+            description: 'Conexion inexistente o de otro owner',
+            content: { 'application/problem+json': { schema: ProblemDetailsSchema } },
+          },
+          '502': {
+            description: 'Cloudflare R2 no disponible o timeout',
             content: { 'application/problem+json': { schema: ProblemDetailsSchema } },
           },
           ...problemResponses,
