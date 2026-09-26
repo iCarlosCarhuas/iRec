@@ -29,6 +29,8 @@ type AlbumRow = typeof albums.$inferSelect;
 type AssetRow = typeof albumAssets.$inferSelect;
 
 export type RegisterUploadedAlbumAssetInput = {
+  assetId: string;
+  storageConnectionId: string;
   objectKey: string;
   thumbnailObjectKey?: string | null;
   originalFilename: string;
@@ -40,69 +42,114 @@ export type RegisterUploadedAlbumAssetInput = {
   uploadedAt: Date;
 };
 
+export type AlbumAssetUploadContext = {
+  ownerId: string;
+  storageConnectionId: string;
+};
+
 @Injectable()
 export class AlbumAssetsService {
   constructor(private readonly dbs: DatabaseService) {}
 
-  /**
-   * Internal boundary for R2-4. There is intentionally no public HTTP create
-   * endpoint in R2-3: a row may only be registered after the upload flow has
-   * validated the real R2 object.
-   */
+  async prepareUpload(
+    albumId: string,
+    uploaderId: string,
+  ): Promise<AlbumAssetUploadContext> {
+    const album = await this.requireAlbum(albumId);
+    await this.requireUploadPermission(album, uploaderId);
+
+    if (!album.storageConnectionId) {
+      throw new ConflictException({
+        type: 'https://irec.app/problems/album-storage-not-configured',
+        title: 'Album storage not configured',
+        status: 409,
+        detail: 'El album no tiene una conexion de almacenamiento configurada.',
+      });
+    }
+
+    await this.requireStorageConnectionOwner(
+      album.ownerId,
+      album.storageConnectionId,
+    );
+
+    return {
+      ownerId: album.ownerId,
+      storageConnectionId: album.storageConnectionId,
+    };
+  }
+
   async registerUploaded(
     albumId: string,
     uploaderId: string,
     input: RegisterUploadedAlbumAssetInput,
   ): Promise<AlbumAssetContract> {
     const album = await this.requireAlbum(albumId);
-    const hasActiveMembership =
-      album.ownerId === uploaderId
-        ? true
-        : await this.hasActiveMembership(albumId, uploaderId);
+    const status = await this.requireUploadPermission(album, uploaderId);
 
-    const status = initialAlbumAssetStatus(
+    // The connection is frozen at presign time. It may no longer be the album's
+    // current connection, but it must still belong to the album owner.
+    await this.requireStorageConnectionOwner(
       album.ownerId,
-      uploaderId,
-      hasActiveMembership,
+      input.storageConnectionId,
     );
 
-    if (!status) {
-      if (album.visibility === 'private') throw this.albumNotFound();
+    const now = new Date();
 
-      throw new ForbiddenException({
-        type: 'https://irec.app/problems/album-asset-upload-forbidden',
-        title: 'Asset upload forbidden',
-        status: 403,
-        detail: 'Solo el owner o un miembro activo puede cargar fotos.',
+    try {
+      const [row] = await this.dbs.db
+        .insert(albumAssets)
+        .values({
+          id: input.assetId,
+          albumId,
+          storageConnectionId: input.storageConnectionId,
+          uploadedBy: uploaderId,
+          objectKey: input.objectKey,
+          thumbnailObjectKey: input.thumbnailObjectKey ?? null,
+          originalFilename: input.originalFilename,
+          mimeType: input.mimeType,
+          sizeBytes: input.sizeBytes,
+          width: input.width ?? null,
+          height: input.height ?? null,
+          checksum: input.checksum ?? null,
+          status,
+          uploadedAt: input.uploadedAt,
+          createdAt: now,
+          updatedAt: now,
+        })
+        .returning();
+
+      if (!row) throw new ConflictException('No se pudo registrar el asset.');
+      return this.toContract(row);
+    } catch (error) {
+      if (!this.isUniqueViolation(error)) throw error;
+
+      const existing = await this.findAsset(albumId, input.assetId);
+      if (
+        existing &&
+        existing.uploadedBy === uploaderId &&
+        existing.storageConnectionId === input.storageConnectionId &&
+        existing.objectKey === input.objectKey
+      ) {
+        return this.toContract(existing);
+      }
+
+      throw new ConflictException({
+        type: 'https://irec.app/problems/album-asset-conflict',
+        title: 'Album asset conflict',
+        status: 409,
+        detail: 'El asset ya fue registrado con otra identidad de upload.',
       });
     }
+  }
 
-    const storageConnectionId = await this.requireAlbumStorage(album);
-
-    const now = new Date();
-    const [row] = await this.dbs.db
-      .insert(albumAssets)
-      .values({
-        albumId,
-        storageConnectionId,
-        uploadedBy: uploaderId,
-        objectKey: input.objectKey,
-        thumbnailObjectKey: input.thumbnailObjectKey ?? null,
-        originalFilename: input.originalFilename,
-        mimeType: input.mimeType,
-        sizeBytes: input.sizeBytes,
-        width: input.width ?? null,
-        height: input.height ?? null,
-        checksum: input.checksum ?? null,
-        status,
-        uploadedAt: input.uploadedAt,
-        createdAt: now,
-        updatedAt: now,
-      })
-      .returning();
-
-    if (!row) throw new ConflictException('No se pudo registrar el asset.');
-    return this.toContract(row);
+  async findCompletedForUploader(
+    albumId: string,
+    assetId: string,
+    uploaderId: string,
+  ): Promise<AlbumAssetContract | null> {
+    const existing = await this.findAsset(albumId, assetId);
+    if (!existing || existing.uploadedBy !== uploaderId) return null;
+    return this.toContract(existing);
   }
 
   async list(
@@ -244,23 +291,44 @@ export class AlbumAssetsService {
     return this.toContract(updated);
   }
 
-  private async requireAlbumStorage(album: AlbumRow): Promise<string> {
-    if (!album.storageConnectionId) {
-      throw new ConflictException({
-        type: 'https://irec.app/problems/album-storage-not-configured',
-        title: 'Album storage not configured',
-        status: 409,
-        detail: 'El album no tiene una conexion de almacenamiento configurada.',
-      });
-    }
+  private async requireUploadPermission(
+    album: AlbumRow,
+    uploaderId: string,
+  ): Promise<AlbumAssetStatus> {
+    const hasActiveMembership =
+      album.ownerId === uploaderId
+        ? true
+        : await this.hasActiveMembership(album.id, uploaderId);
 
+    const status = initialAlbumAssetStatus(
+      album.ownerId,
+      uploaderId,
+      hasActiveMembership,
+    );
+
+    if (status) return status;
+
+    if (album.visibility === 'private') throw this.albumNotFound();
+
+    throw new ForbiddenException({
+      type: 'https://irec.app/problems/album-asset-upload-forbidden',
+      title: 'Asset upload forbidden',
+      status: 403,
+      detail: 'Solo el owner o un miembro activo puede cargar fotos.',
+    });
+  }
+
+  private async requireStorageConnectionOwner(
+    ownerId: string,
+    storageConnectionId: string,
+  ): Promise<void> {
     const [connection] = await this.dbs.db
       .select({ id: storageConnections.id })
       .from(storageConnections)
       .where(
         and(
-          eq(storageConnections.id, album.storageConnectionId),
-          eq(storageConnections.ownerId, album.ownerId),
+          eq(storageConnections.id, storageConnectionId),
+          eq(storageConnections.ownerId, ownerId),
         ),
       )
       .limit(1);
@@ -270,11 +338,9 @@ export class AlbumAssetsService {
         type: 'https://irec.app/problems/album-storage-invalid',
         title: 'Album storage invalid',
         status: 409,
-        detail: 'La conexion del album no pertenece a su owner.',
+        detail: 'La conexion de almacenamiento no pertenece al owner del album.',
       });
     }
-
-    return connection.id;
   }
 
   private async requireAlbum(albumId: string): Promise<AlbumRow> {
@@ -342,6 +408,15 @@ export class AlbumAssetsService {
       createdAt: row.createdAt.toISOString(),
       updatedAt: row.updatedAt.toISOString(),
     };
+  }
+
+  private isUniqueViolation(error: unknown): boolean {
+    return (
+      typeof error === 'object' &&
+      error !== null &&
+      'code' in error &&
+      (error as { code?: unknown }).code === '23505'
+    );
   }
 
   private albumNotFound(): NotFoundException {

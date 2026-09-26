@@ -149,3 +149,20 @@ irec-network
 - R2 Secret Access Key nunca se envía de vuelta al frontend.
 - R2 object keys son definidos por backend, no por input arbitrario del cliente.
 - ninguna operación sobre fotos debe borrar buckets completos.
+
+
+## R2-4 — upload boundary
+
+```text
+PWA -> POST presign -> API
+API -> Redis intent
+API -> presigned PUT
+PWA -> PUT bytes -> R2
+PWA -> POST complete -> API
+API -> HeadObject -> R2
+API -> registerUploaded -> PostgreSQL
+```
+
+Redis correlaciona presign/complete sin crear filas fantasma. El token de intent
+es opaco y se almacena por hash. La StorageConnection y object key se congelan al
+presign.

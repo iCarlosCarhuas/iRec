@@ -7,19 +7,24 @@ import { and, desc, eq, or } from 'drizzle-orm';
 import type {
   AlbumContract,
   AlbumListResponse,
+  AlbumStorageBindingContract,
   CreateAlbumInput,
   UpdateAlbumInput,
 } from '@irec/contracts';
 
 import { DatabaseService } from '../database/database.service.js';
 import { albumMembers, albums } from '../database/schema.js';
+import { StorageConnectionService } from '../storage/storage.service.js';
 import { canReadAlbum, canUpdateAlbum } from './album.policy.js';
 
 type AlbumRow = typeof albums.$inferSelect;
 
 @Injectable()
 export class AlbumService {
-  constructor(private readonly dbs: DatabaseService) {}
+  constructor(
+    private readonly dbs: DatabaseService,
+    private readonly storage: StorageConnectionService,
+  ) {}
 
   async create(userId: string, input: CreateAlbumInput): Promise<AlbumContract> {
     const now = new Date();
@@ -126,7 +131,6 @@ export class AlbumService {
         hasActiveMembership,
       })
     ) {
-      // Private albums are intentionally indistinguishable from missing albums.
       throw this.notFound();
     }
 
@@ -166,6 +170,43 @@ export class AlbumService {
 
     if (!updated) throw this.notFound();
     return this.toContract(updated);
+  }
+
+  async setStorageConnection(
+    albumId: string,
+    ownerId: string,
+    storageConnectionId: string | null,
+  ): Promise<AlbumStorageBindingContract> {
+    const existing = await this.findAlbum(albumId);
+    if (!existing) throw this.notFound();
+
+    if (!canUpdateAlbum(existing.ownerId, ownerId)) {
+      throw new ForbiddenException({
+        type: 'https://irec.app/problems/album-forbidden',
+        title: 'Forbidden',
+        status: 403,
+        detail: 'Solo el propietario puede configurar el storage del album.',
+      });
+    }
+
+    if (storageConnectionId !== null) {
+      await this.storage.requireOwned(ownerId, storageConnectionId);
+    }
+
+    const [updated] = await this.dbs.db
+      .update(albums)
+      .set({
+        storageConnectionId,
+        updatedAt: new Date(),
+      })
+      .where(eq(albums.id, albumId))
+      .returning({
+        albumId: albums.id,
+        storageConnectionId: albums.storageConnectionId,
+      });
+
+    if (!updated) throw this.notFound();
+    return updated;
   }
 
   private async findAlbum(albumId: string): Promise<AlbumRow | undefined> {

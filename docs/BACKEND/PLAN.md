@@ -56,8 +56,8 @@ La release se divide en iteraciones pequeñas:
 R2-0  Foundation / architecture / static gate ✅
 R2-1  StorageConnection domain + encryption ✅
 R2-2  R2 validation API ✅
-R2-3  Photo asset domain + migration 🚧
-R2-4  Presigned upload + completion validation
+R2-3  Photo asset domain + migration ✅
+R2-4  Presigned upload + completion validation 🚧
 R2-5  Listing/read/delete + moderation
 R2-6  Angular integration + public rendering
 R2-7  E2E + hardening + release gate
@@ -137,3 +137,20 @@ Visibilidad:
 - miembro activo: aprobados + sus propios pending/rejected;
 - público/anon en álbum público: solo approved;
 - álbum privado inaccesible: 404.
+
+
+### R2-4 — Presigned upload + completion validation
+
+Implementa:
+
+```text
+PUT  /api/albums/:albumId/storage
+POST /api/albums/:albumId/assets/presign
+POST /api/albums/:albumId/assets/:assetId/complete
+```
+
+No agrega migraciones. Redis conserva el intent temporal y PostgreSQL solo recibe
+la fila `album_assets` después de `HeadObject` exitoso.
+
+El browser sube los bytes directamente a R2 mediante PUT prefirmado. NestJS no
+proxyfía el archivo.

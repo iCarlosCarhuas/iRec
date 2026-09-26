@@ -3,7 +3,7 @@
 Stable release: `v0.3.0 — Album Core`
 Working release: `v0.4.0 — R2 + Photos`
 Integration branch: `integration/v0.4.0`
-Current feature: `feat/v040-photo-domain`
+Current feature: `feat/v040-photo-presigned-upload`
 
 ## Core
 
@@ -32,9 +32,9 @@ view.
 
 ## Current release — v0.4.0 R2 + Photos
 
-R2-0 through R2-2 are integrated. R2-3 introduces the AlbumAsset persistence
-model, visibility/moderation rules and metadata API. Real upload/presign remains
-R2-4 work.
+R2-0 through R2-3 are integrated. R2-4 adds album/storage binding, presigned
+PUT, opaque Redis upload intents and HeadObject completion validation. Angular
+integration remains later work.
 
 Accepted direction:
 

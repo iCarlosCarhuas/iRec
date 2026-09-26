@@ -9,7 +9,7 @@
     "prebuild": "pnpm --filter @irec/contracts build",
     "build": "nest build",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "pnpm test:album && pnpm test:asset && pnpm test:storage && pnpm test:r2",
+    "test": "pnpm test:album && pnpm test:asset && pnpm test:upload && pnpm test:storage && pnpm test:r2",
     "test:album": "tsx --test test/album.policy.test.ts",
     "preopenapi:check": "pnpm --filter @irec/contracts build",
     "openapi:check": "tsx src/openapi/check.ts",
@@ -20,7 +20,8 @@
     "db:studio": "drizzle-kit studio",
     "test:storage": "tsx --test test/storage.domain.test.ts",
     "test:r2": "tsx --test test/storage.r2.test.ts",
-    "test:asset": "tsx --test test/album-asset.policy.test.ts"
+    "test:asset": "tsx --test test/album-asset.policy.test.ts",
+    "test:upload": "tsx --test test/album-asset-upload.test.ts"
   },
   "dependencies": {
     "@irec/contracts": "workspace:*",
@@ -43,7 +44,8 @@
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2",
     "zod": "^4.5.4",
-    "zod-openapi": "^6.0.2"
+    "zod-openapi": "^6.0.2",
+    "@aws-sdk/s3-request-presigner": "3.1135.0"
   },
   "devDependencies": {
     "@nestjs/cli": "^12.0.0",

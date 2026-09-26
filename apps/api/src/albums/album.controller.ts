@@ -5,6 +5,7 @@ import {
   Param,
   Patch,
   Post,
+  Put,
   Req,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -12,9 +13,11 @@ import type { Request } from 'express';
 import {
   AlbumIdParamsSchema,
   CreateAlbumInput,
+  SetAlbumStorageConnectionInput,
   UpdateAlbumInput,
   type AlbumIdParams,
   type CreateAlbumInput as CreateAlbumInputType,
+  type SetAlbumStorageConnectionInput as SetAlbumStorageConnectionInputType,
   type UpdateAlbumInput as UpdateAlbumInputType,
 } from '@irec/contracts';
 
@@ -67,6 +70,23 @@ export class AlbumController {
   ) {
     const user = await this.requireSession(req);
     return this.albums.update(params.albumId, user.id, body);
+  }
+
+
+  @Put(':albumId/storage')
+  async setStorageConnection(
+    @Req() req: Request,
+    @Param(new ZodValidationPipe(AlbumIdParamsSchema))
+    params: AlbumIdParams,
+    @Body(new ZodValidationPipe(SetAlbumStorageConnectionInput))
+    body: SetAlbumStorageConnectionInputType,
+  ) {
+    const user = await this.requireSession(req);
+    return this.albums.setStorageConnection(
+      params.albumId,
+      user.id,
+      body.storageConnectionId,
+    );
   }
 
   private async requireSession(req: Request): Promise<SessionPayload> {

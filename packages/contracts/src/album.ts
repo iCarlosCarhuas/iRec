@@ -127,3 +127,15 @@ export const AlbumProposalsResponseSchema = z.object({
   proposals: z.array(AlbumProposalViewContract),
 });
 export type AlbumProposalsResponse = z.infer<typeof AlbumProposalsResponseSchema>;
+
+
+export const SetAlbumStorageConnectionInput = z.object({
+  storageConnectionId: z.string().uuid().nullable(),
+});
+export type SetAlbumStorageConnectionInput = z.infer<typeof SetAlbumStorageConnectionInput>;
+
+export const AlbumStorageBindingContract = z.object({
+  albumId: AlbumId,
+  storageConnectionId: z.string().uuid().nullable(),
+});
+export type AlbumStorageBindingContract = z.infer<typeof AlbumStorageBindingContract>;

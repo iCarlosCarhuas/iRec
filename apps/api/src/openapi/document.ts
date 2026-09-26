@@ -23,6 +23,7 @@ import {
 import {
   AlbumAssetContract,
   AlbumAssetParamsSchema,
+  CompleteAlbumAssetUploadInput,
   AlbumAssetsResponseSchema,
   AlbumContract,
   AlbumIdParamsSchema,
@@ -33,9 +34,13 @@ import {
   AlbumProposalParamsSchema,
   AlbumProposalViewContract,
   AlbumProposalsResponseSchema,
+  AlbumStorageBindingContract,
   CreateAlbumInput,
   CreateAlbumProposalInput,
   InviteAlbumMemberInput,
+  PresignAlbumAssetInput,
+  PresignAlbumAssetResponseSchema,
+  SetAlbumStorageConnectionInput,
   UpdateAlbumInput,
   CreateStorageConnectionInput,
   StorageConnectionContract,
@@ -561,6 +566,35 @@ Web: http://127.0.0.1:4200 · API: http://127.0.0.1:3000 · Mailpit: http://127.
 
 
 
+    '/albums/{albumId}/storage': {
+      put: {
+        operationId: 'albumStorageSet',
+        tags: ['Albums', 'Storage'],
+        summary: 'Asocia o desacopla una StorageConnection propia; solo owner',
+        security: [{ accessCookie: [] }],
+        requestParams: { path: AlbumIdParamsSchema },
+        requestBody: {
+          required: true,
+          content: json(SetAlbumStorageConnectionInput),
+        },
+        responses: {
+          '200': {
+            description: 'Storage del album actualizado',
+            content: json(AlbumStorageBindingContract),
+          },
+          '403': {
+            description: 'Solo el owner puede configurar storage',
+            content: { 'application/problem+json': { schema: ProblemDetailsSchema } },
+          },
+          '404': {
+            description: 'Album o StorageConnection no encontrados',
+            content: { 'application/problem+json': { schema: ProblemDetailsSchema } },
+          },
+          ...problemResponses,
+        },
+      },
+    },
+
     '/albums/{albumId}/assets': {
       get: {
         operationId: 'albumAssetList',
@@ -577,6 +611,72 @@ Web: http://127.0.0.1:4200 · API: http://127.0.0.1:3000 · Mailpit: http://127.
         },
       },
     },
+
+    '/albums/{albumId}/assets/presign': {
+      post: {
+        operationId: 'albumAssetPresign',
+        tags: ['Photos'],
+        summary: 'Autoriza un PUT directo y reserva un asset id en Redis',
+        security: [{ accessCookie: [] }],
+        requestParams: { path: AlbumIdParamsSchema },
+        requestBody: {
+          required: true,
+          content: json(PresignAlbumAssetInput),
+        },
+        responses: {
+          '200': {
+            description: 'Presigned PUT de corta duracion',
+            content: json(PresignAlbumAssetResponseSchema),
+          },
+          '403': {
+            description: 'Uploader no autorizado',
+            content: { 'application/problem+json': { schema: ProblemDetailsSchema } },
+          },
+          '409': {
+            description: 'Album sin storage configurado',
+            content: { 'application/problem+json': { schema: ProblemDetailsSchema } },
+          },
+          '502': {
+            description: 'No se pudo generar la autorizacion R2',
+            content: { 'application/problem+json': { schema: ProblemDetailsSchema } },
+          },
+          ...problemResponses,
+        },
+      },
+    },
+    '/albums/{albumId}/assets/{assetId}/complete': {
+      post: {
+        operationId: 'albumAssetComplete',
+        tags: ['Photos'],
+        summary: 'Valida con HeadObject y registra metadata del upload',
+        security: [{ accessCookie: [] }],
+        requestParams: { path: AlbumAssetParamsSchema },
+        requestBody: {
+          required: true,
+          content: json(CompleteAlbumAssetUploadInput),
+        },
+        responses: {
+          ...problemResponses,
+          '200': {
+            description: 'Upload validado y asset registrado',
+            content: json(AlbumAssetContract),
+          },
+          '410': {
+            description: 'Upload intent expirado o no corresponde',
+            content: { 'application/problem+json': { schema: ProblemDetailsSchema } },
+          },
+          '422': {
+            description: 'Objeto ausente o metadata no coincide',
+            content: { 'application/problem+json': { schema: ProblemDetailsSchema } },
+          },
+          '502': {
+            description: 'R2 no disponible para validar completion',
+            content: { 'application/problem+json': { schema: ProblemDetailsSchema } },
+          },
+        },
+      },
+    },
+
     '/albums/{albumId}/assets/{assetId}/approve': {
       post: {
         operationId: 'albumAssetApprove',

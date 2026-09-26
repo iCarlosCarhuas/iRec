@@ -3,7 +3,7 @@
 **Corte:** 2026-09-25
 **Release estable:** `v0.3.0 — Album Core`
 **Release objetivo:** `v0.4.0 — R2 + Photos`
-**Etapa actual:** `R2-3 — Photo Asset Domain`
+**Etapa actual:** `R2-4 — Presigned Photo Upload`
 
 ## Estado Git de inicio de v0.4.0
 
@@ -67,7 +67,7 @@ Integrado en `integration/v0.4.0` mediante `f23b895`. Incluye cliente
 S3-compatible, `HeadBucket`, API autenticada para crear/listar/re-testear
 conexiones, rate limiting, OpenAPI y tests.
 
-### R2-3 — Photo Asset Domain 🚧
+### R2-3 — Photo Asset Domain ✅
 
 Esta iteración introduce:
 
@@ -180,3 +180,17 @@ pnpm --filter @irec/api db:generate
 
 Revisar el SQL `0004` y detenerse. Antes de aplicar la migración se repite el
 Data Safety gate: backup + verify + restore-test.
+
+
+### R2-4 — Presigned Photo Upload 🚧
+
+Objetivo:
+
+- binding owner-only album -> StorageConnection;
+- presigned PUT de 5 minutos;
+- intent opaco Redis de 15 minutos;
+- key server-controlled con asset id reservado;
+- `HeadObject` antes de persistir;
+- completion idempotente;
+- sin migración 0005;
+- sin Angular todavía.
