@@ -30,7 +30,8 @@
 - `v0.5.0`: AI Theme.
 - `v0.6.0`: YouTube para videos/live y media gateway cuando corresponda.
 
-R2-0 documenta el target; todavía no agrega SDK S3/R2 al runtime.
+R2-1 agrega el dominio `StorageConnection` y persistencia cifrada en PostgreSQL.
+Todavía no agrega SDK S3/R2 ni tráfico de red hacia Cloudflare.
 
 ## Diagrama lógico
 
@@ -76,7 +77,7 @@ Album
 El owner también mantiene una membership `owner/active` como invariante de la
 capa de servicio.
 
-## R2 + Photos target
+## R2 + Photos — estado R2-1
 
 ```text
 User / owner
@@ -91,9 +92,9 @@ User / owner
                        └── moderation state
 ```
 
-`StorageConnection` pertenece al usuario y puede reutilizarse. Los assets guardan
-la referencia de almacenamiento necesaria para localizar objetos incluso si un
-álbum cambia su configuración posteriormente.
+`StorageConnection` pertenece al usuario y puede reutilizarse. En R2-1 el source
+introduce `storage_connections` y `albums.storage_connection_id` nullable.
+`AlbumAsset` continúa siendo target de R2-3 y aún no existe en schema.
 
 ## Monorepo
 

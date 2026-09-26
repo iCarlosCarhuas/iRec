@@ -6,6 +6,7 @@ import {
   text as irecText,
   timestamp as irecTimestamp,
   uuid as irecUuid,
+  uniqueIndex as irecUniqueIndex,
   varchar as irecVarchar,
 } from 'drizzle-orm/pg-core';
 import {
@@ -92,6 +93,39 @@ export const trustedDevices = pgTable('trusted_devices', {
 ]);
 
 // -----------------------------------------------------------------------------
+// iRec v0.4.0 - R2 + Photos / R2-1 StorageConnection domain
+// -----------------------------------------------------------------------------
+
+export const storageConnections = irecPgTable(
+  'storage_connections',
+  {
+    id: irecUuid('id').defaultRandom().primaryKey(),
+    ownerId: irecUuid('owner_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    accountId: irecVarchar('account_id', { length: 64 }).notNull(),
+    bucket: irecVarchar('bucket', { length: 255 }).notNull(),
+    accessKeyIdEncrypted: irecText('access_key_id_encrypted').notNull(),
+    secretAccessKeyEncrypted: irecText('secret_access_key_encrypted').notNull(),
+    lastVerifiedAt: irecTimestamp('last_verified_at', { withTimezone: true }).notNull(),
+    createdAt: irecTimestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: irecTimestamp('updated_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    irecIndex('storage_connections_owner_idx').on(table.ownerId),
+    irecUniqueIndex('storage_connections_owner_bucket_uq').on(
+      table.ownerId,
+      table.accountId,
+      table.bucket,
+    ),
+  ],
+);
+
+// -----------------------------------------------------------------------------
 // iRec v0.3.0 - Album Core / AD-1
 // -----------------------------------------------------------------------------
 
@@ -121,6 +155,10 @@ export const albums = irecPgTable(
     title: irecVarchar('title', { length: 160 }).notNull(),
     description: irecText('description'),
     visibility: albumVisibilityEnum('visibility').notNull().default('private'),
+    storageConnectionId: irecUuid('storage_connection_id').references(
+      () => storageConnections.id,
+      { onDelete: 'set null' },
+    ),
     createdAt: irecTimestamp('created_at', { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -131,6 +169,7 @@ export const albums = irecPgTable(
   (table) => [
     irecIndex('albums_owner_idx').on(table.ownerId),
     irecIndex('albums_visibility_idx').on(table.visibility),
+    irecIndex('albums_storage_connection_idx').on(table.storageConnectionId),
   ],
 );
 

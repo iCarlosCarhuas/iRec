@@ -63,6 +63,7 @@ export class AlbumService {
         title: albums.title,
         description: albums.description,
         visibility: albums.visibility,
+        storageConnectionId: albums.storageConnectionId,
         createdAt: albums.createdAt,
         updatedAt: albums.updatedAt,
       })

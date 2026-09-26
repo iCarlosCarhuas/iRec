@@ -53,8 +53,8 @@ No asumir endpoints históricos que no estén presentes en el código real.
 La release se divide en iteraciones pequeñas:
 
 ```text
-R2-0  Foundation / architecture / static gate
-R2-1  StorageConnection domain + encryption
+R2-0  Foundation / architecture / static gate ✅
+R2-1  StorageConnection domain + encryption 🚧
 R2-2  R2 validation API
 R2-3  Photo asset domain + migration
 R2-4  Presigned upload + completion validation
@@ -85,7 +85,9 @@ iteración. El diseño parte de estas responsabilidades:
   moderate pending member assets
 ```
 
-R2-0 no crea estos endpoints.
+R2-1 tampoco expone todavía creación HTTP de conexiones. Prepara contratos,
+persistencia cifrada y ownership. R2-2 agrega validación real de Cloudflare y
+recién entonces el controller público correspondiente.
 
 ## v0.5.0 — AI Theme
 

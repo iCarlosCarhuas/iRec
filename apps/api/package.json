@@ -9,7 +9,7 @@
     "prebuild": "pnpm --filter @irec/contracts build",
     "build": "nest build",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "pnpm test:album",
+    "test": "pnpm test:album && pnpm test:storage",
     "test:album": "tsx --test test/album.policy.test.ts",
     "preopenapi:check": "pnpm --filter @irec/contracts build",
     "openapi:check": "tsx src/openapi/check.ts",
@@ -17,7 +17,8 @@
     "openapi:export": "tsx src/openapi/export.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx src/database/migrate.ts",
-    "db:studio": "drizzle-kit studio"
+    "db:studio": "drizzle-kit studio",
+    "test:storage": "tsx --test test/storage.domain.test.ts"
   },
   "dependencies": {
     "@irec/contracts": "workspace:*",
