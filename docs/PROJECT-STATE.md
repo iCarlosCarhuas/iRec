@@ -3,7 +3,7 @@
 **Corte:** 2026-09-25
 **Release estable:** `v0.3.0 — Album Core`
 **Release objetivo:** `v0.4.0 — R2 + Photos`
-**Etapa actual:** `R2-0 — R2 + Photos Foundation`
+**Etapa actual:** `R2-1 — Storage Connection Domain`
 
 ## Estado Git de inicio de v0.4.0
 
@@ -11,8 +11,8 @@ El preflight local confirmó:
 
 ```text
 main                        -> 20cfbd7
-integration/v0.4.0          -> 20cfbd7
-chore/v040-r2-foundation    -> 20cfbd7
+integration/v0.4.0          -> f96188c
+feat/v040-storage-domain    -> f96188c
 v0.3.0 tag                  -> 0a0767c
 ```
 
@@ -26,7 +26,10 @@ E:\MVP\iRec-worktrees\v0.4.0
 └─ integration/v0.4.0
 
 E:\MVP\iRec-worktrees\r2-foundation
-└─ chore/v040-r2-foundation
+└─ chore/v040-r2-foundation (R2-0 integrado)
+
+E:\MVP\iRec-worktrees\storage-domain
+└─ feat/v040-storage-domain
 ```
 
 `main` permanece estable. El tag `v0.3.0` no se mueve.
@@ -47,12 +50,31 @@ Objetivo funcional:
 > visualizar y gestionar fotografías dentro de sus álbumes sin convertir a iRec
 > en propietario del almacenamiento.
 
-### R2-0 — Foundation
+### R2-0 — Foundation ✅
 
-R2-0 solo fija el estado real del proyecto, arquitectura, decisiones y gate de
-foundation.
+Integrado en `integration/v0.4.0` mediante `f96188c`. Fijó estado, arquitectura,
+decisiones y el gate de foundation.
 
-No incluye todavía:
+### R2-1 — Storage Connection Domain 🚧
+
+Esta iteración introduce en source:
+
+- contratos `StorageConnection`;
+- tabla `storage_connections`;
+- `albums.storage_connection_id` nullable;
+- cifrado de Access Key ID y Secret Access Key con `CryptoService`;
+- servicio interno para persistir solo conexiones ya validadas;
+- ownership y tests del dominio.
+
+Todavía no incluye:
+
+- AWS SDK / llamadas a Cloudflare;
+- endpoint público para crear conexiones;
+- validación real del bucket;
+- `album_assets`;
+- UI.
+
+R2-0 no incluyó:
 
 - dependencias AWS SDK / S3;
 - tablas `storage_connections` o `album_assets`;
@@ -131,11 +153,12 @@ inicio de desarrollo.
 
 ## Próximo gate
 
-Ejecutar desde el worktree `r2-foundation`:
+Desde `storage-domain` ejecutar primero el source gate:
 
 ```powershell
-powershell.exe -ExecutionPolicy Bypass -File .\scripts\storage\verify-r2-0.ps1
+powershell.exe -ExecutionPolicy Bypass -File .\scripts\storage\verify-r2-1-source.ps1
 ```
 
-R2-0 no se considera completado hasta revisar además `git diff`, `git status`,
-typechecks/builds aplicables y hacer merge a `integration/v0.4.0`.
+Luego ejecutar contracts build, API typecheck/tests/build y `git diff --check`.
+Solo después generar la migración con Drizzle. La migración generada debe revisarse
+antes de cualquier apply y antes de tocar PostgreSQL debe existir backup nuevo + verify.

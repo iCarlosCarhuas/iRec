@@ -3,7 +3,7 @@
 Stable release: `v0.3.0 — Album Core`
 Working release: `v0.4.0 — R2 + Photos`
 Integration branch: `integration/v0.4.0`
-Current feature: `chore/v040-r2-foundation`
+Current feature: `feat/v040-storage-domain`
 
 ## Core
 
@@ -32,8 +32,9 @@ view.
 
 ## Current release — v0.4.0 R2 + Photos
 
-The release is in foundation/design stage. R2 and photo code are not implemented
-by R2-0.
+R2-0 foundation is integrated. R2-1 introduces the StorageConnection domain,
+encrypted credential persistence boundary and nullable album association in source.
+Cloudflare validation and public HTTP endpoints remain R2-2 work.
 
 Accepted direction:
 
@@ -86,5 +87,5 @@ docs/TECH/ADR/ADR-0013-r2-photo-lifecycle.md
 through `integration/v0.4.0` using isolated feature/worktree branches. Database
 changes require migration review and the Data Safety gate before apply.
 
-Package versions remain `0.3.0` during R2-0. They are not bumped merely because
-work on `v0.4.0` has started.
+Package versions remain `0.3.0` during feature development. They are not bumped
+until release preparation for `v0.4.0`.
