@@ -45,19 +45,74 @@ export class StorageConnectionService {
         providerAccountId: input.providerAccountId,
         displayName: input.displayName ?? null,
         rootId: input.rootId ?? null,
-        credentialsEncrypted: this.crypto.encrypt(input.credentialEnvelope),
+        credentialsEncrypted: this.crypto.encrypt(
+          input.credentialEnvelope,
+        ),
         status: 'pending',
       })
       .returning();
 
     if (!row) {
-      throw new Error('Storage connection could not be created');
+      throw new Error(
+        'Storage connection could not be created',
+      );
     }
 
     return this.toDomain(row);
   }
 
-  async listOwned(ownerId: string): Promise<StorageConnection[]> {
+  async upsert(
+    ownerId: string,
+    input: CreateStorageConnectionInput,
+  ): Promise<StorageConnection> {
+    const now = new Date();
+
+    const credentialsEncrypted = this.crypto.encrypt(
+      input.credentialEnvelope,
+    );
+
+    const [row] = await this.dbs.db
+      .insert(storageConnections)
+      .values({
+        ownerId,
+        provider: input.provider,
+        providerAccountId: input.providerAccountId,
+        displayName: input.displayName ?? null,
+        rootId: input.rootId ?? null,
+        credentialsEncrypted,
+        status: 'pending',
+        lastVerifiedAt: null,
+        updatedAt: now,
+      })
+      .onConflictDoUpdate({
+        target: [
+          storageConnections.ownerId,
+          storageConnections.provider,
+          storageConnections.providerAccountId,
+        ],
+        set: {
+          displayName: input.displayName ?? null,
+          rootId: input.rootId ?? null,
+          credentialsEncrypted,
+          status: 'pending',
+          lastVerifiedAt: null,
+          updatedAt: now,
+        },
+      })
+      .returning();
+
+    if (!row) {
+      throw new Error(
+        'Storage connection could not be persisted',
+      );
+    }
+
+    return this.toDomain(row);
+  }
+
+  async listOwned(
+    ownerId: string,
+  ): Promise<StorageConnection[]> {
     const rows = await this.dbs.db
       .select()
       .from(storageConnections)
@@ -90,7 +145,8 @@ export class StorageConnectionService {
   ): Promise<string | null> {
     const [row] = await this.dbs.db
       .select({
-        credentialsEncrypted: storageConnections.credentialsEncrypted,
+        credentialsEncrypted:
+          storageConnections.credentialsEncrypted,
       })
       .from(storageConnections)
       .where(
@@ -103,7 +159,9 @@ export class StorageConnectionService {
 
     if (!row) return null;
 
-    return this.crypto.decrypt(row.credentialsEncrypted);
+    return this.crypto.decrypt(
+      row.credentialsEncrypted,
+    );
   }
 
   async setStatus(
@@ -118,7 +176,8 @@ export class StorageConnectionService {
       .set({
         status,
         updatedAt: now,
-        lastVerifiedAt: status === 'ready' ? now : undefined,
+        lastVerifiedAt:
+          status === 'ready' ? now : undefined,
       })
       .where(
         and(
