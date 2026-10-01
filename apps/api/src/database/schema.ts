@@ -92,6 +92,75 @@ export const trustedDevices = pgTable('trusted_devices', {
 ]);
 
 // -----------------------------------------------------------------------------
+// iRec v0.4.0 - GD-0 / User-owned storage connections
+// -----------------------------------------------------------------------------
+
+export const storageProviderEnum = irecPgEnum('storage_provider', [
+  'google_drive',
+]);
+
+export const storageConnectionStatusEnum = irecPgEnum(
+  'storage_connection_status',
+  [
+    'pending',
+    'ready',
+    'error',
+    'revoked',
+  ],
+);
+
+export const storageConnections = irecPgTable(
+  'storage_connections',
+  {
+    id: irecUuid('id').defaultRandom().primaryKey(),
+
+    ownerId: irecUuid('owner_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+
+    provider: storageProviderEnum('provider').notNull(),
+
+    providerAccountId: irecText('provider_account_id').notNull(),
+
+    displayName: irecText('display_name'),
+
+    rootId: irecText('root_id'),
+
+    // Provider credentials are persisted only as an encrypted envelope.
+    // They must never be exposed through public storage contracts.
+    credentialsEncrypted: irecText('credentials_encrypted').notNull(),
+
+    status: storageConnectionStatusEnum('status')
+      .notNull()
+      .default('pending'),
+
+    lastVerifiedAt: irecTimestamp('last_verified_at', {
+      withTimezone: true,
+    }),
+
+    createdAt: irecTimestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+
+    updatedAt: irecTimestamp('updated_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    uniqueIndex('storage_connections_owner_provider_account_uq').on(
+      table.ownerId,
+      table.provider,
+      table.providerAccountId,
+    ),
+
+    irecIndex('storage_connections_owner_status_idx').on(
+      table.ownerId,
+      table.status,
+    ),
+  ],
+);
+
+// -----------------------------------------------------------------------------
 // iRec v0.3.0 - Album Core / AD-1
 // -----------------------------------------------------------------------------
 

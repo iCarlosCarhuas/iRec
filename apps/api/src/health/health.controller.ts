@@ -41,7 +41,7 @@ export class HealthController {
     return {
       status: 'ok',
       service: 'irec-api',
-      version: '0.2.0-dev',
+      version: '0.3.0-dev',
       timestamp: new Date().toISOString(),
     };
   }
