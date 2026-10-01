@@ -136,6 +136,19 @@ export class GoogleDriveOAuthService {
     };
   }
 
+  async cancelAuthorization(
+    ownerId: string,
+    rawState: string,
+  ): Promise<void> {
+    const state = await this.consumeState(rawState);
+
+    if (!state || state.ownerId !== ownerId) {
+      throw new BadRequestException(
+        'OAuth state invalido o expirado.',
+      );
+    }
+  }
+
   async completeAuthorization(
     ownerId: string,
     code: string,

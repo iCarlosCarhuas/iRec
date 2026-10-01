@@ -437,3 +437,62 @@ test(
     }
   },
 );
+
+test(
+  'consumes OAuth state when authorization is cancelled',
+  async () => {
+    let reads = 0;
+
+    const redis = {
+      async connect() {},
+
+      client: {
+        async call(
+          command: string,
+          key: string,
+        ) {
+          assert.equal(command, 'GETDEL');
+
+          assert.equal(
+            key,
+            'irec:storage:google-oauth:state-hash',
+          );
+
+          reads += 1;
+
+          if (reads > 1) {
+            return null;
+          }
+
+          return JSON.stringify({
+            ownerId: 'user-123',
+            createdAt:
+              '2026-10-01T00:00:00.000Z',
+          });
+        },
+      },
+    };
+
+    const service =
+      new GoogleDriveOAuthService(
+        config() as never,
+        crypto() as never,
+        redis as never,
+        {} as never,
+      );
+
+    await service.cancelAuthorization(
+      'user-123',
+      'raw-state',
+    );
+
+    await assert.rejects(
+      () =>
+        service.cancelAuthorization(
+          'user-123',
+          'raw-state',
+        ),
+      /OAuth state invalido o expirado/,
+    );
+  },
+);

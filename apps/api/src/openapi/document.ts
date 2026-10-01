@@ -95,6 +95,7 @@ Web: http://127.0.0.1:4200 · API: http://127.0.0.1:3000 · Mailpit: http://127.
     { name: 'Health', description: 'Estado del servicio' },
     { name: 'Auth', description: 'Identity passwordless: email + TOTP' },
     { name: 'Albums', description: 'Album Core: ownership, visibility y membresias' },
+    { name: 'Storage', description: 'User-owned storage connections' },
   ],
   paths: {
     '/health/live': {
@@ -550,6 +551,73 @@ Web: http://127.0.0.1:4200 · API: http://127.0.0.1:3000 · Mailpit: http://127.
       },
     },
 
+    '/storage/google/connect': {
+      get: {
+        operationId: 'googleDriveConnect',
+        tags: ['Storage'],
+        summary: 'Inicia conexion OAuth con Google Drive',
+        security: [{ accessCookie: [] }],
+        responses: {
+          '302': {
+            description: 'Redireccion a Google OAuth',
+          },
+          '401': {
+            description: 'No autenticado',
+            content: {
+              'application/problem+json': {
+                schema: ProblemDetailsSchema,
+              },
+            },
+          },
+          '503': {
+            description: 'Google OAuth no configurado',
+            content: {
+              'application/problem+json': {
+                schema: ProblemDetailsSchema,
+              },
+            },
+          },
+        },
+      },
+    },
+
+    '/storage/google/callback': {
+      get: {
+        operationId: 'googleDriveCallback',
+        tags: ['Storage'],
+        summary: 'Completa conexion OAuth con Google Drive',
+        security: [{ accessCookie: [] }],
+        responses: {
+          '200': {
+            description: 'Conexion Google Drive creada o actualizada',
+          },
+          '400': {
+            description: 'Callback invalido, expirado o cancelado',
+            content: {
+              'application/problem+json': {
+                schema: ProblemDetailsSchema,
+              },
+            },
+          },
+          '401': {
+            description: 'No autenticado',
+            content: {
+              'application/problem+json': {
+                schema: ProblemDetailsSchema,
+              },
+            },
+          },
+          '502': {
+            description: 'Google OAuth o Drive no disponible',
+            content: {
+              'application/problem+json': {
+                schema: ProblemDetailsSchema,
+              },
+            },
+          },
+        },
+      },
+    },
   },
   components: {
     securitySchemes: {
