@@ -39,6 +39,15 @@ export const EnvSchema = z.object({
   SMTP_HOST: z.string().default('127.0.0.1'),
   SMTP_PORT: z.coerce.number().int().positive().default(1025),
   RESEND_API_KEY: z.string().optional(),
+
+  GOOGLE_OAUTH_CLIENT_ID: z.string().min(1).optional(),
+  GOOGLE_OAUTH_CLIENT_SECRET: z.string().min(1).optional(),
+  GOOGLE_OAUTH_REDIRECT_URI: z.string().url().optional(),
+  GOOGLE_OAUTH_STATE_TTL_SECONDS: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(600),
 }).superRefine((env, ctx) => {
   if (env.EMAIL_TRANSPORT === 'resend' && !env.RESEND_API_KEY) {
     ctx.addIssue({ code: 'custom', path: ['RESEND_API_KEY'], message: 'RESEND_API_KEY es requerido cuando EMAIL_TRANSPORT=resend' });
