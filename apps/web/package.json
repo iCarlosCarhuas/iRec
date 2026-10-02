@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "ng serve --host 127.0.0.1 --port 4200",
     "build": "ng build",
-    "typecheck": "tsc -p tsconfig.app.json --noEmit"
+    "typecheck": "tsc -p tsconfig.app.json --noEmit",
+    "check:service-worker": "node scripts/check-service-worker.mjs"
   },
   "dependencies": {
     "@angular/common": "^22.1.0",

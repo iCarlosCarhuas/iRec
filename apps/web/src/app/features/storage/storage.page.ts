@@ -186,7 +186,8 @@ export class StoragePage implements OnInit {
       const window = this.document.defaultView;
       if (!window) throw new Error('Browser navigation unavailable');
       // Navigate to the backend; never fetch or expose OAuth codes or tokens.
-      window.location.assign('/api/storage/google/connect');
+      // Bypass already-installed workers that still treat /api as app navigation.
+      window.location.assign('/api/storage/google/connect?ngsw-bypass=true');
     } catch {
       this.connecting.set(false);
       this.connectError.set('No pudimos abrir Google. Vuelve a pulsar Conectar Google Drive.');
