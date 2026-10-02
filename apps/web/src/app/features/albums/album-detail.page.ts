@@ -15,10 +15,18 @@ import { firstValueFrom } from 'rxjs';
 import { AuthStore } from '../../core/auth/auth-store.service';
 import { uiError } from '../../core/http/ui-error';
 import { StorageApiService } from '../storage/storage-api.service';
-import { AlbumApiService } from './album-api.service';
+import {
+  AlbumApiService,
+  UPLOAD_ACCEPT,
+  UPLOAD_FORMATS_LABEL,
+  isPreviewLimitedImageMime,
+  isVideoAssetMime,
+  normalizeUploadMimeType,
+} from './album-api.service';
 
 const PREFERRED_CONNECTION_KEY = 'irec.preferredStorageConnectionId';
-const ALLOWED_UPLOAD_MIME = ['image/jpeg', 'image/png', 'image/webp', 'video/mp4'];
+const UPLOAD_ACCEPT_ATTR = UPLOAD_ACCEPT;
+const UPLOAD_FORMATS_TEXT = UPLOAD_FORMATS_LABEL;
 
 @Component({
   standalone: true,
@@ -178,14 +186,17 @@ const ALLOWED_UPLOAD_MIME = ['image/jpeg', 'image/png', 'image/webp', 'video/mp4
               }
 
               <label class="upload-label">
-                <span>Subir foto o video (jpeg, png, webp o mp4, maximo {{ maxUploadMb() }} MB)</span>
+                <span>Subir foto o video ({{ uploadFormatsText() }}, maximo {{ maxUploadMb() }} MB)</span>
                 <input
                   type="file"
-                  accept="image/jpeg,image/png,image/webp,video/mp4"
+                  [attr.accept]="uploadAccept()"
                   [disabled]="!selectedConnectionId() || uploading()"
                   (change)="onFileSelected($event)"
                 />
               </label>
+              <p class="quiet-status">
+                Los archivos heic/heif se guardan y listan, pero su vista previa es limitada en algunos navegadores.
+              </p>
 
               @if (uploading()) {
                 <div role="status" aria-live="polite" class="upload-progress">
@@ -226,7 +237,7 @@ const ALLOWED_UPLOAD_MIME = ['image/jpeg', 'image/png', 'image/webp', 'video/mp4
           } @else {
             <div class="asset-grid" aria-label="Galeria del album">
               @for (asset of assets(); track asset.id) {
-                @if (asset.mimeType === 'video/mp4') {
+                @if (isVideoAsset(asset.mimeType)) {
                   <button
                     class="asset-thumb"
                     type="button"
@@ -262,10 +273,15 @@ const ALLOWED_UPLOAD_MIME = ['image/jpeg', 'image/png', 'image/webp', 'video/mp4
                 (click)="$event.stopPropagation()"
               >
                 <h3>{{ current.originalName }}</h3>
-                @if (current.mimeType === 'video/mp4') {
+                @if (isVideoAsset(current.mimeType)) {
                   <video [src]="contentUrl(current)" controls preload="metadata" playsinline></video>
                 } @else {
                   <img [src]="contentUrl(current)" [alt]="current.originalName" />
+                }
+                @if (isPreviewLimitedImage(current.mimeType)) {
+                  <p class="quiet-status">
+                    La vista previa de heic/heif es limitada en algunos navegadores; el archivo queda guardado en tu Google Drive.
+                  </p>
                 }
                 <div class="button-row asset-dialog-actions">
                   <button class="button ghost" type="button" (click)="closeAsset()">
@@ -800,8 +816,10 @@ export class AlbumDetailPage implements OnInit {
       this.uploadError.set('Elige una conexion de Google Drive antes de subir.');
       return;
     }
-    if (file.type && !ALLOWED_UPLOAD_MIME.includes(file.type)) {
-      this.uploadError.set('Tipo de archivo no permitido: solo jpeg, png, webp o mp4.');
+    if (file.type && !normalizeUploadMimeType(file.type)) {
+      this.uploadError.set(
+        `Tipo de archivo no permitido: solo ${UPLOAD_FORMATS_TEXT}.`,
+      );
       return;
     }
     if (!Number.isFinite(file.size) || file.size <= 0) {
@@ -883,6 +901,22 @@ export class AlbumDetailPage implements OnInit {
 
   maxUploadMb(): number {
     return Math.round(MAX_ALBUM_ASSET_SIZE_BYTES / 1024 / 1024);
+  }
+
+  uploadAccept(): string {
+    return UPLOAD_ACCEPT_ATTR;
+  }
+
+  uploadFormatsText(): string {
+    return UPLOAD_FORMATS_TEXT;
+  }
+
+  isVideoAsset(mimeType: string): boolean {
+    return isVideoAssetMime(mimeType);
+  }
+
+  isPreviewLimitedImage(mimeType: string): boolean {
+    return isPreviewLimitedImageMime(mimeType);
   }
 
   private readPreferredConnection(): string | null {

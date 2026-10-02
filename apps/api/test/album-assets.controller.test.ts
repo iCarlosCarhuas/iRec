@@ -226,7 +226,7 @@ test('album assets thin HTTP (mocked service, no provider, no bytes)', async (t)
     await t.test('create validates mime, size and name before touching the service', async () => {
       const before = calls.create.length;
       const badBodies = [
-        { ...baseBody, mimeType: 'image/gif' },
+        { ...baseBody, mimeType: 'image/svg+xml' },
         { ...baseBody, mimeType: 'application/pdf' },
         { ...baseBody, sizeBytes: 0 },
         { ...baseBody, sizeBytes: MAX_ALBUM_ASSET_SIZE_BYTES + 1 },

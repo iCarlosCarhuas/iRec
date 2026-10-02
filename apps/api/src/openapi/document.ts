@@ -605,7 +605,7 @@ Web: http://127.0.0.1:4200 · API: http://127.0.0.1:3000 · Mailpit: http://127.
         operationId: 'albumAssetUpload',
         tags: ['Albums'],
         summary: 'Sube bytes a Drive con sesion reanudable y finaliza tras verificar',
-        description: 'multipart/form-data con storageConnectionId y sizeBytes como campos de texto (antes del archivo) y los bytes en la parte `file` (jpeg/png/webp/mp4, <= 100MB). Crea el contenido en pendiente, transmite a Google sin cargarlo completo en memoria, verifica id/tamano/mime en el proveedor y solo entonces lo marca listo. Un fallo del proveedor deja el contenido en fallido (failed).',
+        description: 'multipart/form-data con storageConnectionId y sizeBytes como campos de texto (antes del archivo) y los bytes en la parte `file` (jpeg/jpg, png, webp, gif, heic, heif, mp4, mov, webm, <= 100MB). Crea el contenido en pendiente, transmite a Google sin cargarlo completo en memoria, verifica id/tamano/mime en el proveedor y solo entonces lo marca listo. Un fallo del proveedor deja el contenido en fallido (failed).',
         security: [{ accessCookie: [] }],
         requestParams: { path: AlbumIdParamsSchema },
         requestBody: {

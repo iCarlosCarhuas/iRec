@@ -29,6 +29,12 @@ export function uiError(
     return body.detail;
   }
 
+  if (error.status === 413) {
+    // nginx answers 413 as HTML (no JSON) when a body exceeds
+    // client_max_body_size before the API can respond.
+    return 'Archivo muy grande para el servidor (limite 100 MB). Prueba con uno menor o comprimido.';
+  }
+
   if (error.status === 429) {
     return 'Hay demasiados intentos. Espera un momento antes de volver a probar.';
   }

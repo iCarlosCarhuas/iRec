@@ -7,9 +7,32 @@ export const AlbumAssetMime = z.enum([
   'image/jpeg',
   'image/png',
   'image/webp',
+  'image/gif',
+  'image/heic',
+  'image/heif',
   'video/mp4',
+  'video/quicktime',
+  'video/webm',
 ]);
 export type AlbumAssetMime = z.infer<typeof AlbumAssetMime>;
+
+/**
+ * Smallest safe playable + storable set. svg/bmp/tiff/avi/mkv stay rejected
+ * by default (security + preview cost). `image/jpg` is a common alias sent
+ * by phones/cameras and normalizes to `image/jpeg`.
+ */
+export const ALLOWED_ALBUM_ASSET_MIMES: readonly string[] = AlbumAssetMime.options;
+
+const JPG_ALIAS = 'image/jpg';
+
+/** Normalizes client-sent mime aliases (`image/jpg` → `image/jpeg`). */
+export function normalizeAlbumAssetMime(raw: unknown): AlbumAssetMime | null {
+  if (typeof raw !== 'string') return null;
+  const lowered = raw.trim().toLowerCase();
+  const canonical = lowered === JPG_ALIAS ? 'image/jpeg' : lowered;
+  const parsed = AlbumAssetMime.safeParse(canonical);
+  return parsed.success ? parsed.data : null;
+}
 
 export const AlbumAssetStatus = z.enum([
   'pending',
@@ -65,7 +88,7 @@ export const UploadAlbumAssetMultipartSchema = UploadAlbumAssetFieldsSchema.exte
   file: z
     .string()
     .describe(
-      'Binary bytes (image/jpeg, image/png, image/webp, video/mp4, <= 100MB). Must be the last part; sizeBytes must equal the exact file length.',
+      'Binary bytes (jpeg/jpg, png, webp, gif, heic, heif, mp4, mov, webm, <= 100MB). Must be the last part; sizeBytes must equal the exact file length.',
     ),
 });
 export type UploadAlbumAssetMultipart = z.infer<typeof UploadAlbumAssetMultipartSchema>;

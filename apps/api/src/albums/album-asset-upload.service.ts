@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import {
-  AlbumAssetMime,
   MAX_ALBUM_ASSET_SIZE_BYTES,
   UploadAlbumAssetFieldsSchema,
+  normalizeAlbumAssetMime,
   type AlbumAssetContract,
 } from '@irec/contracts';
 
@@ -104,10 +104,10 @@ export class AlbumAssetUploadService {
             if (event.head.fieldName !== 'file') {
               throw validationError('El archivo debe enviarse en la parte `file`.');
             }
-            const mime = AlbumAssetMime.safeParse(event.head.mimeType);
-            if (!mime.success) {
+            const mime = normalizeAlbumAssetMime(event.head.mimeType);
+            if (!mime) {
               throw validationError(
-                'Tipo de archivo no permitido: solo jpeg, png, webp o mp4.',
+                'Tipo de archivo no permitido: solo jpg, jpeg, png, webp, gif, heic, heif, mp4, mov o webm.',
               );
             }
             const originalName = sanitizeOriginalName(event.head.filename);
@@ -127,7 +127,7 @@ export class AlbumAssetUploadService {
             // Tenant + membership + READY guards run before any provider byte.
             pending = await this.assets.createPending(albumId, uploaderId, {
               storageConnectionId: parsed.data.storageConnectionId,
-              mimeType: mime.data,
+              mimeType: mime,
               originalName,
               sizeBytes: declaredSize,
             });
@@ -136,7 +136,7 @@ export class AlbumAssetUploadService {
                 connectionId: parsed.data.storageConnectionId,
                 ownerId: uploaderId,
                 fileName: originalName,
-                mimeType: mime.data,
+                mimeType: mime,
                 chunkBytes: options.chunkBytes,
               });
               upload = begun.upload;

@@ -8,6 +8,7 @@ import {
   CreateAlbumAssetInput,
   FinalizeAlbumAssetInput,
   MAX_ALBUM_ASSET_SIZE_BYTES,
+  normalizeAlbumAssetMime,
   type CreateAlbumAssetInput as CreateAlbumAssetInputType,
 } from '@irec/contracts';
 
@@ -23,8 +24,20 @@ import { AlbumAssetsService } from '../src/albums/album-assets.service.js';
 // Contracts: mime/size guards
 // ---------------------------------------------------------------------------
 
-test('CreateAlbumAssetInput accepts the jpeg/png/webp/mp4 allowlist', () => {
-  for (const mimeType of ['image/jpeg', 'image/png', 'image/webp', 'video/mp4']) {
+test('CreateAlbumAssetInput accepts the image/video allowlist', () => {
+  for (
+    const mimeType of [
+      'image/jpeg',
+      'image/png',
+      'image/webp',
+      'image/gif',
+      'image/heic',
+      'image/heif',
+      'video/mp4',
+      'video/quicktime',
+      'video/webm',
+    ]
+  ) {
     const parsed = CreateAlbumAssetInput.parse({
       storageConnectionId: '11111111-1111-4111-8111-111111111111',
       mimeType,
@@ -35,8 +48,22 @@ test('CreateAlbumAssetInput accepts the jpeg/png/webp/mp4 allowlist', () => {
   }
 });
 
+test('normalizeAlbumAssetMime maps the jpg alias to jpeg', () => {
+  assert.equal(normalizeAlbumAssetMime('image/jpg'), 'image/jpeg');
+  assert.equal(normalizeAlbumAssetMime('IMAGE/JPG'), 'image/jpeg');
+});
+
 test('CreateAlbumAssetInput rejects non-allowlist mime types', () => {
-  for (const mimeType of ['image/svg+xml', 'image/gif', 'application/pdf', 'video/webm']) {
+  for (
+    const mimeType of [
+      'image/svg+xml',
+      'image/bmp',
+      'image/tiff',
+      'application/pdf',
+      'video/x-msvideo',
+      'video/x-matroska',
+    ]
+  ) {
     assert.equal(
       CreateAlbumAssetInput.safeParse({
         storageConnectionId: '11111111-1111-4111-8111-111111111111',

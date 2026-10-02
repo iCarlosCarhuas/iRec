@@ -588,7 +588,7 @@ test('non-allowlist mime is rejected 422 before any insert or provider call', as
     const { service, seen } = setup({ select: [] });
     const boundary = 'boundary-bad-mime';
     const body = multipartBody(boundary, uploadArgs(bytes.length), {
-      contentType: 'image/gif',
+      contentType: 'image/svg+xml',
       data: bytes,
     });
 
@@ -608,6 +608,97 @@ test('non-allowlist mime is rejected 422 before any insert or provider call', as
     assert.equal(log.inits.length, 0);
   } finally {
     restore();
+  }
+});
+
+test('expanded allowlist streams to ready with normalized mime (jpg alias included)', async () => {
+  const cases: { sent: string; stored: string }[] = [
+    { sent: 'image/jpeg', stored: 'image/jpeg' },
+    { sent: 'image/jpg', stored: 'image/jpeg' },
+    { sent: 'image/png', stored: 'image/png' },
+    { sent: 'image/webp', stored: 'image/webp' },
+    { sent: 'image/gif', stored: 'image/gif' },
+    { sent: 'image/heic', stored: 'image/heic' },
+    { sent: 'image/heif', stored: 'image/heif' },
+    { sent: 'video/mp4', stored: 'video/mp4' },
+    { sent: 'video/quicktime', stored: 'video/quicktime' },
+    { sent: 'video/webm', stored: 'video/webm' },
+  ];
+  for (const [index, { sent, stored }] of cases.entries()) {
+    const log = freshLog();
+    const restore = installDriveMock([], log);
+    try {
+      const bytes = fileBytes(24);
+      const { service, seen } = setup({
+        select: [[albumRow()], [connectionRow()], [assetRow()], [albumRow()]],
+        insert: [[assetRow()]],
+        update: [[assetRow({ status: 'ready', providerFileId: FILE_ID })]],
+      });
+      const boundary = `boundary-allowlist-${index}`;
+      const body = multipartBody(boundary, uploadArgs(bytes.length), {
+        contentType: sent,
+        data: bytes,
+      });
+
+      const asset = await service.uploadStreaming(
+        ALBUM_ID,
+        OWNER_ID,
+        splitSource(body, 7),
+        `multipart/form-data; boundary=${boundary}`,
+        { chunkBytes: 64 },
+      );
+
+      assert.equal(asset.status, 'ready');
+      assert.equal((seen.values as { mimeType: string }).mimeType, stored);
+      assert.equal(log.inits[0]?.mimeType, stored);
+    } finally {
+      restore();
+    }
+  }
+});
+
+test('rejected formats 422 with a clear message and no side effects', async () => {
+  for (
+    const contentType of [
+      'image/svg+xml',
+      'image/bmp',
+      'image/tiff',
+      'video/x-msvideo',
+      'video/x-matroska',
+    ]
+  ) {
+    const log = freshLog();
+    const restore = installDriveMock([], log);
+    try {
+      const bytes = fileBytes(16);
+      const { service, seen } = setup({ select: [] });
+      const boundary = `boundary-rejected-${contentType.replace(/[^a-z0-9]+/gi, '-')}`;
+      const body = multipartBody(boundary, uploadArgs(bytes.length), {
+        contentType,
+        data: bytes,
+      });
+
+      const error = await rejectsStatus(
+        () =>
+          service.uploadStreaming(
+            ALBUM_ID,
+            OWNER_ID,
+            splitSource(body, 9),
+            `multipart/form-data; boundary=${boundary}`,
+          ),
+        422,
+      );
+
+      assert.match(
+        String(JSON.stringify(error.getResponse())),
+        /no permitido/,
+      );
+      assert.equal(seen.inserts, 0);
+      assert.equal(log.tokens, 0);
+      assert.equal(log.inits.length, 0);
+    } finally {
+      restore();
+    }
   }
 });
 

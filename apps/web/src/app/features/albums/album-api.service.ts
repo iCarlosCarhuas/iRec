@@ -17,6 +17,56 @@ import type {
 } from '@irec/contracts';
 import type { Observable } from 'rxjs';
 
+export const SUPPORTED_UPLOAD_MIMES: readonly string[] = [
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'image/gif',
+  'image/heic',
+  'image/heif',
+  'video/mp4',
+  'video/quicktime',
+  'video/webm',
+];
+
+export const UPLOAD_ACCEPT =
+  '.jpg,.jpeg,.png,.webp,.gif,.heic,.heif,.mp4,.mov,.webm';
+
+export const UPLOAD_FORMATS_LABEL =
+  'jpg, jpeg, png, webp, gif, heic, heif, mp4, mov o webm';
+
+export const UPLOAD_TOO_LARGE_MESSAGE =
+  'Archivo muy grande para el servidor (limite 100 MB). Prueba con uno menor o comprimido.';
+
+/** Normalizes client mime aliases (`image/jpg` → `image/jpeg`). */
+export function normalizeUploadMimeType(raw: unknown): string | null {
+  if (typeof raw !== 'string') return null;
+  const lowered = raw.trim().toLowerCase();
+  const canonical = lowered === 'image/jpg' ? 'image/jpeg' : lowered;
+  return (SUPPORTED_UPLOAD_MIMES as readonly string[]).includes(canonical)
+    ? canonical
+    : null;
+}
+
+/** Type guard for the upload allowlist (alias-aware). */
+export function isSupportedUploadMime(value: unknown): value is string {
+  return normalizeUploadMimeType(value) !== null;
+}
+
+/** True for playable video assets (mp4/mov/webm) rendered in `<video>`. */
+export function isVideoAssetMime(mimeType: string): boolean {
+  return (
+    mimeType === 'video/mp4' ||
+    mimeType === 'video/quicktime' ||
+    mimeType === 'video/webm'
+  );
+}
+
+/** True for heic/heif: stored + listed, but preview-limited in browsers. */
+export function isPreviewLimitedImageMime(mimeType: string): boolean {
+  return mimeType === 'image/heic' || mimeType === 'image/heif';
+}
+
 @Injectable({ providedIn: 'root' })
 export class AlbumApiService {
   private readonly http = inject(HttpClient);
