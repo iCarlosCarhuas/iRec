@@ -621,10 +621,17 @@ Web: http://127.0.0.1:4200 · API: http://127.0.0.1:3000 · Mailpit: http://127.
         operationId: 'googleDriveCallback',
         tags: ['Storage'],
         summary: 'Completa conexion OAuth con Google Drive',
+        description: 'On success, redirects only to /settings/storage on the configured PUBLIC_WEB_URL. No request host, redirect input, OAuth code, state, token or connection data is included in the redirect. Failures remain sanitized problem responses; state is single-use and session-owner-bound.',
         security: [{ accessCookie: [] }],
         responses: {
-          '200': {
-            description: 'Conexion Google Drive creada o actualizada',
+          '302': {
+            description: 'Conexion Google Drive creada o actualizada; redireccion fija a almacenamiento',
+            headers: {
+              Location: {
+                description: 'Configured public web origin plus /settings/storage; no query or fragment.',
+                schema: { type: 'string', format: 'uri' },
+              },
+            },
           },
           '400': {
             description: 'Callback invalido, expirado o cancelado',
@@ -636,6 +643,14 @@ Web: http://127.0.0.1:4200 · API: http://127.0.0.1:3000 · Mailpit: http://127.
           },
           '401': {
             description: 'No autenticado',
+            content: {
+              'application/problem+json': {
+                schema: ProblemDetailsSchema,
+              },
+            },
+          },
+          '503': {
+            description: 'Google OAuth o URL publica de iRec no configurados',
             content: {
               'application/problem+json': {
                 schema: ProblemDetailsSchema,

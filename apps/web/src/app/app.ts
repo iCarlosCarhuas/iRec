@@ -22,6 +22,7 @@ import { AuthStore } from './core/auth/auth-store.service';
           @if (auth.authenticated()) {
             <a class="nav-primary" routerLink="/albums">Mis albumes</a>
             <span class="user-chip">{{ auth.user()?.email }}</span>
+            <a class="nav-storage" routerLink="/settings/storage">Almacenamiento</a>
             <a routerLink="/settings/security">Seguridad</a>
             <button class="link-button" type="button" (click)="logout()">
               Salir
@@ -35,6 +36,11 @@ import { AuthStore } from './core/auth/auth-store.service';
 
       <router-outlet />
     </div>
+  `,
+  styles: `
+    .topnav { flex-wrap: wrap; justify-content: flex-end; }
+    .topnav a.nav-storage { display: inline-flex; }
+    .topnav a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   `,
 })
 export class App {

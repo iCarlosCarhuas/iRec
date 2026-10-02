@@ -71,6 +71,13 @@ export const routes: Routes = [
     title: 'Album · iRec',
   },
   {
+    path: 'settings/storage',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/storage/storage.page').then((m) => m.StoragePage),
+    title: 'Almacenamiento · iRec',
+  },
+  {
     path: 'settings/security',
     canActivate: [authGuard],
     loadComponent: () =>

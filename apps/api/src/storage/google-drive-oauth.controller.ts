@@ -5,8 +5,10 @@ import {
   Query,
   Req,
   Res,
+  ServiceUnavailableException,
   UnauthorizedException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 
 import type {
   Request,
@@ -27,6 +29,7 @@ export class GoogleDriveOAuthController {
   constructor(
     private readonly oauth: GoogleDriveOAuthService,
     private readonly sessions: SessionService,
+    private readonly config: ConfigService,
   ) {}
 
   @Get('connect')
@@ -53,7 +56,8 @@ export class GoogleDriveOAuthController {
     @Query('code') code: string | undefined,
     @Query('state') state: string | undefined,
     @Query('error') error: string | undefined,
-  ) {
+    @Res() res: Response,
+  ): Promise<void> {
     const user = await this.requireSession(req);
 
     if (error) {
@@ -79,11 +83,39 @@ export class GoogleDriveOAuthController {
       );
     }
 
-    return this.oauth.completeAuthorization(
+    const settingsUrl = this.storageSettingsUrl();
+
+    await this.oauth.completeAuthorization(
       user.id,
       code,
       state,
     );
+
+    res.setHeader('Cache-Control', 'no-store');
+    res.setHeader('Referrer-Policy', 'no-referrer');
+    res.redirect(302, settingsUrl);
+  }
+
+  private storageSettingsUrl(): string {
+    try {
+      const base = new URL(
+        this.config.getOrThrow<string>('PUBLIC_WEB_URL'),
+      );
+
+      if (
+        !['http:', 'https:'].includes(base.protocol) ||
+        base.username || base.password
+      ) {
+        throw new Error('Invalid public web URL');
+      }
+
+      // Fixed path discards configured query/fragment; request input is never used.
+      return new URL('/settings/storage', base).toString();
+    } catch {
+      throw new ServiceUnavailableException(
+        'La URL publica de iRec no esta configurada correctamente.',
+      );
+    }
   }
 
   private async requireSession(
