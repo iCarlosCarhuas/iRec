@@ -24,6 +24,9 @@ import {
   TrustedDevicesResponseSchema,
 } from '@irec/contracts';
 import {
+  AlbumAssetContract,
+  AlbumAssetParamsSchema,
+  AlbumAssetsResponseSchema,
   AlbumContract,
   AlbumIdParamsSchema,
   AlbumListResponseSchema,
@@ -33,6 +36,7 @@ import {
   AlbumProposalParamsSchema,
   AlbumProposalViewContract,
   AlbumProposalsResponseSchema,
+  CreateAlbumAssetInput,
   CreateAlbumInput,
   CreateAlbumProposalInput,
   InviteAlbumMemberInput,
@@ -547,6 +551,69 @@ Web: http://127.0.0.1:4200 · API: http://127.0.0.1:3000 · Mailpit: http://127.
           },
           '409': {
             description: 'La propuesta ya tiene una decision final distinta',
+            content: { 'application/problem+json': { schema: ProblemDetailsSchema } },
+          },
+          ...problemResponses,
+        },
+      },
+    },
+
+    '/albums/{albumId}/assets': {
+      post: {
+        operationId: 'albumAssetCreate',
+        tags: ['Albums'],
+        summary: 'Registra un contenido pendiente con una conexion propia verificada',
+        security: [{ accessCookie: [] }],
+        requestParams: { path: AlbumIdParamsSchema },
+        requestBody: { required: true, content: json(CreateAlbumAssetInput) },
+        responses: {
+          '201': { description: 'Contenido pendiente creado', content: json(AlbumAssetContract) },
+          '403': {
+            description: 'La sesion no es miembro del album',
+            content: { 'application/problem+json': { schema: ProblemDetailsSchema } },
+          },
+          '404': {
+            description: 'Album inexistente o conexion ajena/inexistente',
+            content: { 'application/problem+json': { schema: ProblemDetailsSchema } },
+          },
+          '409': {
+            description: 'La conexion no esta verificada',
+            content: { 'application/problem+json': { schema: ProblemDetailsSchema } },
+          },
+          ...problemResponses,
+        },
+      },
+      get: {
+        operationId: 'albumAssetList',
+        tags: ['Albums'],
+        summary: 'Lista contenidos no eliminados; albumes privados ocultos con 404',
+        security: [{ accessCookie: [] }],
+        requestParams: { path: AlbumIdParamsSchema },
+        responses: {
+          '200': { description: 'Contenidos del album', content: json(AlbumAssetsResponseSchema) },
+          '404': {
+            description: 'Album inexistente o privado para la sesion',
+            content: { 'application/problem+json': { schema: ProblemDetailsSchema } },
+          },
+          ...problemResponses,
+        },
+      },
+    },
+    '/albums/{albumId}/assets/{assetId}': {
+      delete: {
+        operationId: 'albumAssetDelete',
+        tags: ['Albums'],
+        summary: 'Marca un contenido como eliminado; owner o quien lo subio, idempotente',
+        security: [{ accessCookie: [] }],
+        requestParams: { path: AlbumAssetParamsSchema },
+        responses: {
+          '200': { description: 'Contenido eliminado', content: json(SuccessResponseSchema) },
+          '403': {
+            description: 'Solo el owner o quien subio el contenido puede eliminarlo',
+            content: { 'application/problem+json': { schema: ProblemDetailsSchema } },
+          },
+          '404': {
+            description: 'Album o contenido no encontrados en este album',
             content: { 'application/problem+json': { schema: ProblemDetailsSchema } },
           },
           ...problemResponses,

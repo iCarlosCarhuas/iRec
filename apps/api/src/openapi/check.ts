@@ -12,6 +12,8 @@ const requiredPaths = [
   '/auth/session',
   '/auth/recovery/email',
   '/auth/recovery/code',
+  '/albums/{albumId}/assets',
+  '/albums/{albumId}/assets/{assetId}',
   '/storage/google/connect',
   '/storage/google/callback',
   '/storage/connections',
