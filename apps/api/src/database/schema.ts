@@ -1,5 +1,6 @@
 import {
   index as irecIndex,
+  integer as irecInteger,
   pgEnum as irecPgEnum,
   pgTable as irecPgTable,
   primaryKey as irecPrimaryKey,
@@ -269,5 +270,51 @@ export const albumProposals = irecPgTable(
   (table) => [
     irecIndex('album_proposals_album_status_idx').on(table.albumId, table.status),
     irecIndex('album_proposals_proposer_idx').on(table.proposedBy),
+  ],
+);
+
+// -----------------------------------------------------------------------------
+// iRec v0.4.0 - Album Assets / provider-backed media metadata (no bytes yet)
+// PG owns relations/auth; the provider (Drive) owns bytes.
+// -----------------------------------------------------------------------------
+
+export const albumAssetStatusEnum = irecPgEnum('album_asset_status', [
+  'pending',
+  'ready',
+  'failed',
+  'deleted',
+]);
+
+export const albumAssets = irecPgTable(
+  'album_assets',
+  {
+    id: irecUuid('id').defaultRandom().primaryKey(),
+    albumId: irecUuid('album_id')
+      .notNull()
+      .references(() => albums.id, { onDelete: 'cascade' }),
+    uploadedBy: irecUuid('uploaded_by')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    storageConnectionId: irecUuid('storage_connection_id')
+      .notNull()
+      .references(() => storageConnections.id, { onDelete: 'restrict' }),
+    provider: storageProviderEnum('provider').notNull(),
+    // Null until the provider confirms the uploaded bytes (finalize step).
+    providerFileId: irecText('provider_file_id'),
+    mimeType: irecText('mime_type').notNull(),
+    originalName: irecVarchar('original_name', { length: 255 }).notNull(),
+    sizeBytes: irecInteger('size_bytes').notNull(),
+    status: albumAssetStatusEnum('status').notNull().default('pending'),
+    createdAt: irecTimestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: irecTimestamp('updated_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    irecIndex('album_assets_album_idx').on(table.albumId),
+    irecIndex('album_assets_connection_idx').on(table.storageConnectionId),
+    irecIndex('album_assets_uploader_idx').on(table.uploadedBy),
   ],
 );

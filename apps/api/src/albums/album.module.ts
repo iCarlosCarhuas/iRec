@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 
 import { AuthModule } from '../auth/auth.module.js';
 import { AlbumController } from './album.controller.js';
+import { AlbumAssetsService } from './album-assets.service.js';
 import { AlbumMembersController } from './album-members.controller.js';
 import { AlbumMembersService } from './album-members.service.js';
 import { AlbumProposalsController } from './album-proposals.controller.js';
@@ -17,8 +18,10 @@ import { AlbumService } from './album.service.js';
   ],
   providers: [
     AlbumService,
+    AlbumAssetsService,
     AlbumMembersService,
     AlbumProposalsService,
   ],
+  exports: [AlbumAssetsService],
 })
 export class AlbumModule {}
