@@ -19,6 +19,7 @@ import {
 } from '@irec/contracts';
 
 import { AlbumAssetUploadService } from '../src/albums/album-asset-upload.service.js';
+import { AlbumAssetContentService } from '../src/albums/album-asset-content.service.js';
 import { AlbumAssetsService } from '../src/albums/album-assets.service.js';
 import { AlbumAssetsController } from '../src/albums/album-assets.controller.js';
 import { AuthService } from '../src/auth/auth.service.js';
@@ -764,7 +765,7 @@ const verifiedAt = new Date('2026-01-01T00:00:00.000Z');
 
 Reflect.defineMetadata(
   'design:paramtypes',
-  [AlbumAssetsService, AlbumAssetUploadService, AuthService, ConfigService],
+  [AlbumAssetsService, AlbumAssetUploadService, AlbumAssetContentService, AuthService, ConfigService],
   AlbumAssetsController,
 );
 
@@ -820,6 +821,7 @@ test('upload HTTP: auth, validation, and contract passthrough (mocked services)'
     providers: [
       { provide: AlbumAssetsService, useValue: {} },
       { provide: AlbumAssetUploadService, useValue: uploads },
+      { provide: AlbumAssetContentService, useValue: {} },
       { provide: AuthService, useValue: auth },
       { provide: ConfigService, useValue: config },
     ],
@@ -894,6 +896,7 @@ test('upload HTTP: auth, validation, and contract passthrough (mocked services)'
             providers: [
               { provide: AlbumAssetsService, useValue: {} },
               { provide: AlbumAssetUploadService, useValue: failing },
+              { provide: AlbumAssetContentService, useValue: {} },
               { provide: AuthService, useValue: auth },
               { provide: ConfigService, useValue: config },
             ],

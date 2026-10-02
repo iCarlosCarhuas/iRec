@@ -202,24 +202,59 @@ export class AlbumAssetsService {
     return this.toContract(updated);
   }
 
+  /**
+   * Single-asset metadata for multi-drive galleries. Same visibility rules
+   * as the list: private albums are indistinguishable from missing ones
+   * (404), and deleted rows never surface. The contract always carries
+   * storageConnectionId + providerFileId so the client knows which Drive
+   * each asset lives in; bytes are never included here.
+   */
+  async getOne(
+    albumId: string,
+    assetId: string,
+    viewerId: string | undefined,
+  ): Promise<AlbumAssetContract> {
+    const album = await this.requireAlbum(albumId);
+    const membership = await this.membershipFor(album, viewerId);
+
+    if (
+      !canReadAlbum({
+        visibility: album.visibility,
+        ownerId: album.ownerId,
+        viewerId,
+        hasActiveMembership: membership,
+      })
+    ) {
+      throw this.albumNotFound();
+    }
+
+    const asset = await this.requireScopedAsset(albumId, assetId);
+    if (asset.status === 'deleted') throw this.assetNotFound();
+    return this.toContract(asset);
+  }
+
   async requestDelete(
     albumId: string,
     assetId: string,
     requesterId: string,
   ): Promise<{ success: true }> {
-    const album = await this.requireAlbum(albumId);
-    const [asset] = await this.dbs.db
-      .select()
-      .from(albumAssets)
-      .where(
-        and(
-          eq(albumAssets.id, assetId),
-          eq(albumAssets.albumId, albumId),
-        ),
-      )
-      .limit(1);
+    const asset = await this.authorizeDelete(albumId, assetId, requesterId);
+    return this.finalizeDeleted(asset);
+  }
 
-    if (!asset) throw this.assetNotFound();
+  /**
+   * Authz half of a delete: the asset scoped to its album (cross-album
+   * reads 404) plus the owner-or-uploader membership check (403). The
+   * provider-aware path runs this first, deletes in Drive, and only then
+   * calls finalizeDeleted — authz can never be skipped or reordered.
+   */
+  async authorizeDelete(
+    albumId: string,
+    assetId: string,
+    requesterId: string,
+  ): Promise<AlbumAssetContract> {
+    const album = await this.requireAlbum(albumId);
+    const asset = await this.requireScopedAsset(albumId, assetId);
 
     const membership = await this.membershipFor(album, requesterId);
 
@@ -234,6 +269,17 @@ export class AlbumAssetsService {
       throw this.forbidden('Solo el propietario o quien subio el contenido puede eliminarlo.');
     }
 
+    return this.toContract(asset);
+  }
+
+  /**
+   * Local half of a delete: idempotent, transition-checked, no provider
+   * touch. Accepts the authorized snapshot so requestDelete keeps its exact
+   * query sequence and provider deletes never run twice for one call.
+   */
+  async finalizeDeleted(
+    asset: Pick<AlbumAssetContract, 'id' | 'status'>,
+  ): Promise<{ success: true }> {
     if (asset.status === 'deleted') return { success: true };
 
     if (!canTransitionAlbumAssetStatus(asset.status, 'deleted')) {
@@ -248,7 +294,7 @@ export class AlbumAssetsService {
     await this.dbs.db
       .update(albumAssets)
       .set({ status: 'deleted', updatedAt: new Date() })
-      .where(eq(albumAssets.id, assetId));
+      .where(eq(albumAssets.id, asset.id));
 
     return { success: true };
   }
@@ -269,6 +315,29 @@ export class AlbumAssetsService {
       .select()
       .from(albumAssets)
       .where(eq(albumAssets.id, assetId))
+      .limit(1);
+
+    if (!asset) throw this.assetNotFound();
+    return asset;
+  }
+
+  /**
+   * Album-scoped asset load: an id from another album reads as missing
+   * (404) so asset ids can never be used as cross-album oracles.
+   */
+  private async requireScopedAsset(
+    albumId: string,
+    assetId: string,
+  ): Promise<AlbumAssetRow> {
+    const [asset] = await this.dbs.db
+      .select()
+      .from(albumAssets)
+      .where(
+        and(
+          eq(albumAssets.id, assetId),
+          eq(albumAssets.albumId, albumId),
+        ),
+      )
       .limit(1);
 
     if (!asset) throw this.assetNotFound();

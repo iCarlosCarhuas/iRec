@@ -633,10 +633,27 @@ Web: http://127.0.0.1:4200 · API: http://127.0.0.1:3000 · Mailpit: http://127.
       },
     },
     '/albums/{albumId}/assets/{assetId}': {
+      get: {
+        operationId: 'albumAssetGet',
+        tags: ['Albums'],
+        summary: 'Lee un contenido por id; respeta la visibilidad del album',
+        description: 'Mismos permisos que la lista: albumes privados ocultos con 404. Siempre incluye storageConnectionId y providerFileId para galerias multi-Drive. Sin bytes.',
+        security: [{ accessCookie: [] }],
+        requestParams: { path: AlbumAssetParamsSchema },
+        responses: {
+          '200': { description: 'Contenido con su conexion y archivo proveedor', content: json(AlbumAssetContract) },
+          '404': {
+            description: 'Album privado/inexistente o contenido eliminado/ajeno',
+            content: { 'application/problem+json': { schema: ProblemDetailsSchema } },
+          },
+          ...problemResponses,
+        },
+      },
       delete: {
         operationId: 'albumAssetDelete',
         tags: ['Albums'],
-        summary: 'Marca un contenido como eliminado; owner o quien lo subio, idempotente',
+        summary: 'Elimina en Drive y marca local como eliminado; owner o quien lo subio, idempotente',
+        description: 'Autoriza primero (owner o quien subio + membresia), elimina el archivo en Drive y luego finaliza la fila local. Un archivo ya ausente en el proveedor igual finaliza local; cualquier otro fallo del proveedor deja la fila intacta con un 502 sanitizado.',
         security: [{ accessCookie: [] }],
         requestParams: { path: AlbumAssetParamsSchema },
         responses: {
@@ -647,6 +664,41 @@ Web: http://127.0.0.1:4200 · API: http://127.0.0.1:3000 · Mailpit: http://127.
           },
           '404': {
             description: 'Album o contenido no encontrados en este album',
+            content: { 'application/problem+json': { schema: ProblemDetailsSchema } },
+          },
+          '502': {
+            description: 'El proveedor no pudo eliminar; la fila local conserva su estado',
+            content: { 'application/problem+json': { schema: ProblemDetailsSchema } },
+          },
+          ...problemResponses,
+        },
+      },
+    },
+    '/albums/{albumId}/assets/{assetId}/content': {
+      get: {
+        operationId: 'albumAssetContent',
+        tags: ['Albums'],
+        summary: 'Transmite los bytes del contenido desde Drive (proxy seguro)',
+        description: 'Autoriza visibilidad + membresia + pertenencia y luego transmite desde la conexion Drive propia del contenido (multi-Drive correcto). El archivo Drive nunca se hace publico y no se emiten URL con tokens. Responde image/jpeg, image/png, image/webp o video/mp4 con Accept-Ranges: bytes; un encabezado Range de un solo rango devuelve 206 + Content-Range para video, o 416 si es insatisfacible. Content-Disposition: inline.',
+        security: [{ accessCookie: [] }],
+        requestParams: { path: AlbumAssetParamsSchema },
+        responses: {
+          '200': { description: 'Bytes completos del contenido' },
+          '206': { description: 'Rango parcial de bytes (video seeking)' },
+          '404': {
+            description: 'Album privado/inexistente o contenido eliminado/ajeno',
+            content: { 'application/problem+json': { schema: ProblemDetailsSchema } },
+          },
+          '409': {
+            description: 'El contenido aun no esta listo o la conexion no esta verificada',
+            content: { 'application/problem+json': { schema: ProblemDetailsSchema } },
+          },
+          '416': {
+            description: 'Rango fuera del contenido',
+            content: { 'application/problem+json': { schema: ProblemDetailsSchema } },
+          },
+          '502': {
+            description: 'El proveedor fallo o devolvio bytes que no coinciden con el registro',
             content: { 'application/problem+json': { schema: ProblemDetailsSchema } },
           },
           ...problemResponses,

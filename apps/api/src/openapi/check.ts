@@ -15,6 +15,7 @@ const requiredPaths = [
   '/albums/{albumId}/assets',
   '/albums/{albumId}/assets/upload',
   '/albums/{albumId}/assets/{assetId}',
+  '/albums/{albumId}/assets/{assetId}/content',
   '/storage/google/connect',
   '/storage/google/callback',
   '/storage/connections',

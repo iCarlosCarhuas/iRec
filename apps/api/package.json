@@ -10,7 +10,7 @@
     "build": "nest build",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "pnpm --filter @irec/contracts build && pnpm test:album && pnpm test:storage",
-    "test:album": "tsx --test test/album.policy.test.ts test/album-assets.test.ts test/album-asset-upload.test.ts test/album-assets.controller.test.ts",
+    "test:album": "tsx --test test/album.policy.test.ts test/album-assets.test.ts test/album-asset-upload.test.ts test/album-assets.controller.test.ts test/album-asset-read.test.ts",
     "preopenapi:check": "pnpm --filter @irec/contracts build",
     "openapi:check": "tsx src/openapi/check.ts",
     "preopenapi:export": "pnpm --filter @irec/contracts build",

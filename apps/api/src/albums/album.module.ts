@@ -4,6 +4,7 @@ import { AuthModule } from '../auth/auth.module.js';
 import { StorageModule } from '../storage/storage.module.js';
 import { AlbumController } from './album.controller.js';
 import { AlbumAssetUploadService } from './album-asset-upload.service.js';
+import { AlbumAssetContentService } from './album-asset-content.service.js';
 import { AlbumAssetsController } from './album-assets.controller.js';
 import { AlbumAssetsService } from './album-assets.service.js';
 import { AlbumMembersController } from './album-members.controller.js';
@@ -23,6 +24,7 @@ import { AlbumService } from './album.service.js';
   providers: [
     AlbumService,
     AlbumAssetsService,
+    AlbumAssetContentService,
     AlbumAssetUploadService,
     AlbumMembersService,
     AlbumProposalsService,

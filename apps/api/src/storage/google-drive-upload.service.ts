@@ -4,18 +4,21 @@ import {
   ForbiddenException,
   Injectable,
   NotFoundException,
-  ServiceUnavailableException,
-  UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
-import { GOOGLE_DRIVE_SCOPE } from './google-drive-oauth.service.js';
 import { StorageConnectionService } from './storage-connection.service.js';
+import {
+  badDriveResponse,
+  driveReconnect,
+  isRecord,
+  readDriveJson,
+  refreshGoogleDriveAccessToken,
+} from './google-drive-token.js';
 
 const RESUMABLE_ENDPOINT =
   'https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable';
 const FILES_ENDPOINT = 'https://www.googleapis.com/drive/v3/files';
-const TOKEN_ENDPOINT = 'https://oauth2.googleapis.com/token';
 const VERIFY_FIELDS = 'id,name,mimeType,size,parents';
 
 // 256KB multiples are required by Drive for multi-chunk resumable uploads.
@@ -90,7 +93,7 @@ export class ResumableDriveUpload {
       });
     }
     const fileId = await this.put(this.pending, true, totalBytes);
-    if (!fileId) throw badProviderResponse();
+    if (!fileId) throw badDriveResponse();
     this.pending = Buffer.alloc(0);
     this.finished = true;
     return this.verify(fileId, totalBytes);
@@ -165,7 +168,7 @@ export class ResumableDriveUpload {
       return null;
     }
     if (final && (response.status === 200 || response.status === 201)) {
-      const payload = await readJson(response);
+      const payload = await readDriveJson(response);
       if (
         isRecord(payload) &&
         typeof payload.id === 'string' &&
@@ -174,15 +177,15 @@ export class ResumableDriveUpload {
         this.sentBytes += piece.length;
         return payload.id;
       }
-      throw badProviderResponse();
+      throw badDriveResponse();
     }
-    if (response.status === 401) throw reconnect();
+    if (response.status === 401) throw driveReconnect();
     if (response.status === 403 || response.status === 404) {
       throw new ForbiddenException(
         'Google Drive no permite escribir con los permisos otorgados.',
       );
     }
-    if (response.status === 308 && final) throw badProviderResponse();
+    if (response.status === 308 && final) throw badDriveResponse();
     if (response.status === 429 || response.status >= 500) {
       throw new BadGatewayException(
         'Google Drive no esta disponible; intentalo de nuevo.',
@@ -193,7 +196,7 @@ export class ResumableDriveUpload {
         'Google Drive rechazo el contenido de la subida.',
       );
     }
-    throw badProviderResponse();
+    throw badDriveResponse();
   }
 
   private async verify(
@@ -219,24 +222,24 @@ export class ResumableDriveUpload {
         'Google Drive no esta disponible; intentalo de nuevo.',
       );
     }
-    if (response.status === 401) throw reconnect();
+    if (response.status === 401) throw driveReconnect();
     if (response.status === 403 || response.status === 404) {
       throw new ForbiddenException(
         'Google Drive no permite leer el archivo subido.',
       );
     }
-    const payload = await readJson(response);
+    const payload = await readDriveJson(response);
     if (
       !isRecord(payload) ||
       payload.id !== fileId ||
       typeof payload.mimeType !== 'string' ||
       payload.mimeType.toLowerCase() !== this.expectedMimeType.toLowerCase()
     ) {
-      throw badProviderResponse();
+      throw badDriveResponse();
     }
     const size = Number(payload.size);
     if (!Number.isInteger(size) || size !== totalBytes) {
-      throw badProviderResponse();
+      throw badDriveResponse();
     }
     return {
       providerFileId: fileId,
@@ -316,7 +319,7 @@ export class GoogleDriveUploadService {
         redirect: 'error',
         signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
       });
-      if (response.status === 401) throw reconnect();
+      if (response.status === 401) throw driveReconnect();
       if (response.status === 403) {
         throw new ForbiddenException(
           'Google Drive no permite escribir con los permisos otorgados.',
@@ -333,7 +336,7 @@ export class GoogleDriveUploadService {
         );
       }
       const location = response.headers.get('location');
-      if (!location) throw badProviderResponse();
+      if (!location) throw badDriveResponse();
       sessionUri = location;
       // Drain the initiation body so sockets are not leaked.
       await response.arrayBuffer().catch(() => undefined);
@@ -357,79 +360,11 @@ export class GoogleDriveUploadService {
   }
 
   private async refreshAccessToken(envelope: string): Promise<string> {
-    let credential: unknown;
-    try {
-      credential = JSON.parse(envelope);
-    } catch {
-      throw reconnect();
-    }
-    if (
-      !isRecord(credential) ||
-      credential.version !== 1 ||
-      typeof credential.refreshToken !== 'string' ||
-      !credential.refreshToken.trim() ||
-      typeof credential.scope !== 'string' ||
-      !credential.scope.split(' ').includes(GOOGLE_DRIVE_SCOPE) ||
-      credential.tokenType !== 'Bearer'
-    ) {
-      throw reconnect();
-    }
-    const clientId = this.config.get<string>('GOOGLE_OAUTH_CLIENT_ID');
-    const clientSecret = this.config.get<string>('GOOGLE_OAUTH_CLIENT_SECRET');
-    if (!clientId || !clientSecret) {
-      throw new ServiceUnavailableException(
-        'Google Drive OAuth is not configured.',
-      );
-    }
-    let response: Response;
-    try {
-      response = await fetch(TOKEN_ENDPOINT, {
-        method: 'POST',
-        headers: {
-          'content-type': 'application/x-www-form-urlencoded',
-          accept: 'application/json',
-        },
-        body: new URLSearchParams({
-          client_id: clientId,
-          client_secret: clientSecret,
-          refresh_token: credential.refreshToken,
-          grant_type: 'refresh_token',
-        }),
-        redirect: 'error',
-        signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
-      });
-    } catch {
-      throw new BadGatewayException(
-        'Google Drive no esta disponible; intentalo de nuevo.',
-      );
-    }
-    const payload = await readJson(response);
-    if (
-      !isRecord(payload) ||
-      typeof payload.access_token !== 'string' ||
-      !payload.access_token.trim() ||
-      payload.token_type !== 'Bearer' ||
-      typeof payload.expires_in !== 'number' ||
-      payload.expires_in <= 0 ||
-      (payload.scope !== undefined &&
-        (typeof payload.scope !== 'string' ||
-          !payload.scope.split(' ').includes(GOOGLE_DRIVE_SCOPE)))
-    ) {
-      if (
-        isRecord(payload) &&
-        payload.error === 'invalid_grant' &&
-        response.status === 400
-      ) {
-        throw reconnect();
-      }
-      throw badProviderResponse();
-    }
-    return payload.access_token;
+    return refreshGoogleDriveAccessToken(
+      (key) => this.config.get<string>(key),
+      envelope,
+    );
   }
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
 function isHttpLike(error: unknown): boolean {
@@ -438,25 +373,5 @@ function isHttpLike(error: unknown): boolean {
     error !== null &&
     'getStatus' in error &&
     typeof (error as { getStatus: unknown }).getStatus === 'function'
-  );
-}
-
-async function readJson(response: Response): Promise<unknown> {
-  try {
-    return await response.json();
-  } catch {
-    return null;
-  }
-}
-
-function reconnect(): UnauthorizedException {
-  return new UnauthorizedException(
-    'Google Drive authorization is invalid; reconnect.',
-  );
-}
-
-function badProviderResponse(): BadGatewayException {
-  return new BadGatewayException(
-    'Google Drive returned an invalid response.',
   );
 }
