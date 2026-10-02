@@ -6,6 +6,7 @@ import { SecurityModule } from '../security/security.module.js';
 
 import { GoogleDriveOAuthController } from './google-drive-oauth.controller.js';
 import { GoogleDriveOAuthService } from './google-drive-oauth.service.js';
+import { GoogleDriveRootService } from './google-drive-root.service.js';
 import { StorageConnectionService } from './storage-connection.service.js';
 import { StorageProviderRegistry } from './storage-provider.registry.js';
 
@@ -20,11 +21,13 @@ import { StorageProviderRegistry } from './storage-provider.registry.js';
   ],
   providers: [
     GoogleDriveOAuthService,
+    GoogleDriveRootService,
     StorageConnectionService,
     StorageProviderRegistry,
   ],
   exports: [
     GoogleDriveOAuthService,
+    GoogleDriveRootService,
     StorageConnectionService,
     StorageProviderRegistry,
   ],

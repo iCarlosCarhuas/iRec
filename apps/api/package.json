@@ -18,7 +18,7 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx src/database/migrate.ts",
     "db:studio": "drizzle-kit studio",
-    "test:storage": "tsx --test test/storage-connection.policy.test.ts test/storage-provider.registry.test.ts test/google-drive-oauth.service.test.ts"
+    "test:storage": "tsx --test test/storage-connection.policy.test.ts test/storage-provider.registry.test.ts test/google-drive-oauth.service.test.ts test/google-drive-root.service.test.ts test/storage-connection.service.test.ts"
   },
   "dependencies": {
     "@irec/contracts": "workspace:*",

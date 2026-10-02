@@ -92,7 +92,8 @@ export class StorageConnectionService {
         ],
         set: {
           displayName: input.displayName ?? null,
-          rootId: input.rootId ?? null,
+          // Same-account reconnect refreshes credentials, not root identity.
+          rootId: input.rootId ?? storageConnections.rootId,
           credentialsEncrypted,
           status: 'pending',
           lastVerifiedAt: null,
@@ -162,6 +163,48 @@ export class StorageConnectionService {
     return this.crypto.decrypt(
       row.credentialsEncrypted,
     );
+  }
+
+  /**
+   * Hold the existing connection row lock through remote preparation and local
+   * persistence. Concurrent prepares and reconnect upserts serialize across
+   * API instances using this database; no lease can expire mid-create.
+   */
+  async prepareGoogleDriveRoot(
+    connectionId: string,
+    ownerId: string,
+    prepare: (
+      connection: StorageConnection,
+      credentialEnvelope: string,
+    ) => Promise<string>,
+  ): Promise<StorageConnection | null> {
+    return this.dbs.db.transaction(async (tx) => {
+      const predicate = and(
+        eq(storageConnections.id, connectionId),
+        eq(storageConnections.ownerId, ownerId),
+        eq(storageConnections.provider, 'google_drive'),
+      );
+      const [row] = await tx.select()
+        .from(storageConnections)
+        .where(predicate)
+        .limit(1)
+        .for('update');
+
+      if (!row) return null;
+
+      const rootId = await prepare(
+        this.toDomain(row),
+        this.crypto.decrypt(row.credentialsEncrypted),
+      );
+      const now = new Date();
+      const [updated] = await tx.update(storageConnections)
+        .set({ rootId, status: 'ready', lastVerifiedAt: now, updatedAt: now })
+        .where(predicate)
+        .returning();
+
+      if (!updated) throw new Error('Storage root could not be persisted');
+      return this.toDomain(updated);
+    });
   }
 
   async setStatus(
