@@ -13,6 +13,7 @@ import {
 } from '@irec/contracts';
 
 import { AuthService } from '../src/auth/auth.service.js';
+import { AlbumAssetUploadService } from '../src/albums/album-asset-upload.service.js';
 import { AlbumAssetsController } from '../src/albums/album-assets.controller.js';
 import { AlbumAssetsService } from '../src/albums/album-assets.service.js';
 import { ProblemDetailsFilter } from '../src/http/problem-details.filter.js';
@@ -56,7 +57,7 @@ const baseBody = {
 };
 
 // tsx does not emit TypeScript's constructor metadata; production tsc does.
-Reflect.defineMetadata('design:paramtypes', [AlbumAssetsService, AuthService, ConfigService], AlbumAssetsController);
+Reflect.defineMetadata('design:paramtypes', [AlbumAssetsService, AlbumAssetUploadService, AuthService, ConfigService], AlbumAssetsController);
 
 test('album assets thin HTTP (mocked service, no provider, no bytes)', async (t) => {
   const calls = { create: [] as unknown[], list: [] as unknown[], remove: [] as unknown[] };
@@ -154,6 +155,7 @@ test('album assets thin HTTP (mocked service, no provider, no bytes)', async (t)
     controllers: [AlbumAssetsController],
     providers: [
       { provide: AlbumAssetsService, useValue: assets },
+      { provide: AlbumAssetUploadService, useValue: {} },
       { provide: AuthService, useValue: auth },
       { provide: ConfigService, useValue: config },
     ],

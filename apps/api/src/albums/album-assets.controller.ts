@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  HttpCode,
   Param,
   Post,
   Req,
@@ -23,6 +24,7 @@ import {
 import { AuthService } from '../auth/auth.service.js';
 import type { SessionPayload } from '../auth/session.service.js';
 import { ZodValidationPipe } from '../http/zod-validation.pipe.js';
+import { AlbumAssetUploadService } from './album-asset-upload.service.js';
 import { AlbumAssetsService } from './album-assets.service.js';
 
 const ACCESS_COOKIE = 'irec_access';
@@ -33,6 +35,7 @@ const TRUSTED_COOKIE = 'irec_trusted';
 export class AlbumAssetsController {
   constructor(
     private readonly assets: AlbumAssetsService,
+    private readonly uploads: AlbumAssetUploadService,
     private readonly auth: AuthService,
     private readonly config: ConfigService,
   ) {}
@@ -48,6 +51,28 @@ export class AlbumAssetsController {
   ) {
     const user = await this.requireSession(req, res);
     return this.assets.createPending(params.albumId, user.id, body);
+  }
+
+  /**
+   * Streaming resumable upload: multipart fields (storageConnectionId,
+   * sizeBytes) first, then the `file` part piped straight to Drive with no
+   * whole-file buffering. The asset only becomes ready after provider verify.
+   */
+  @Post('upload')
+  @HttpCode(201)
+  async upload(
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+    @Param(new ZodValidationPipe(AlbumIdParamsSchema))
+    params: AlbumIdParams,
+  ) {
+    const user = await this.requireSession(req, res);
+    return this.uploads.uploadStreaming(
+      params.albumId,
+      user.id,
+      req,
+      req.headers['content-type'],
+    );
   }
 
   @Get()

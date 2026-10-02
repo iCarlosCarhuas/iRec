@@ -41,6 +41,7 @@ import {
   CreateAlbumProposalInput,
   InviteAlbumMemberInput,
   UpdateAlbumInput,
+  UploadAlbumAssetMultipartSchema,
 } from '@irec/contracts';
 import { createDocument } from 'zod-openapi';
 import type { ZodType } from 'zod';
@@ -593,6 +594,38 @@ Web: http://127.0.0.1:4200 · API: http://127.0.0.1:3000 · Mailpit: http://127.
           '200': { description: 'Contenidos del album', content: json(AlbumAssetsResponseSchema) },
           '404': {
             description: 'Album inexistente o privado para la sesion',
+            content: { 'application/problem+json': { schema: ProblemDetailsSchema } },
+          },
+          ...problemResponses,
+        },
+      },
+    },
+    '/albums/{albumId}/assets/upload': {
+      post: {
+        operationId: 'albumAssetUpload',
+        tags: ['Albums'],
+        summary: 'Sube bytes a Drive con sesion reanudable y finaliza tras verificar',
+        description: 'multipart/form-data con storageConnectionId y sizeBytes como campos de texto (antes del archivo) y los bytes en la parte `file` (jpeg/png/webp/mp4, <= 100MB). Crea el contenido en pendiente, transmite a Google sin cargarlo completo en memoria, verifica id/tamano/mime en el proveedor y solo entonces lo marca listo. Un fallo del proveedor deja el contenido en fallido (failed).',
+        security: [{ accessCookie: [] }],
+        requestParams: { path: AlbumIdParamsSchema },
+        requestBody: {
+          required: true,
+          content: {
+            'multipart/form-data': { schema: UploadAlbumAssetMultipartSchema },
+          },
+        },
+        responses: {
+          '201': { description: 'Contenido listo y verificado', content: json(AlbumAssetContract) },
+          '403': {
+            description: 'La sesion no es miembro del album o Drive no permite escribir',
+            content: { 'application/problem+json': { schema: ProblemDetailsSchema } },
+          },
+          '404': {
+            description: 'Album inexistente o conexion ajena/inexistente',
+            content: { 'application/problem+json': { schema: ProblemDetailsSchema } },
+          },
+          '502': {
+            description: 'El proveedor fallo o devolvio una respuesta invalida',
             content: { 'application/problem+json': { schema: ProblemDetailsSchema } },
           },
           ...problemResponses,

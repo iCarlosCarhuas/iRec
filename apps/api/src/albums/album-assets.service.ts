@@ -156,6 +156,52 @@ export class AlbumAssetsService {
     return this.toContract(updated);
   }
 
+  /**
+   * Records an explicit failed state for a pending asset whose provider
+   * upload did not verify (transport error, invalid provider response,
+   * size mismatch). Pending rows are never left dangling silently, and a
+   * ready asset can never move back to failed.
+   */
+  async markFailed(
+    assetId: string,
+    requesterId: string,
+  ): Promise<AlbumAssetContract> {
+    const asset = await this.requireAsset(assetId);
+    const album = await this.requireAlbum(asset.albumId);
+    const membership = await this.membershipFor(album, requesterId);
+
+    if (
+      !canFinalizeAlbumAsset(
+        album.ownerId,
+        asset.uploadedBy,
+        requesterId,
+        membership,
+      )
+    ) {
+      throw this.forbidden('Solo el propietario o quien subio el contenido puede finalizarlo.');
+    }
+
+    if (asset.status === 'failed') return this.toContract(asset);
+
+    if (!canTransitionAlbumAssetStatus(asset.status, 'failed')) {
+      throw new ConflictException({
+        type: 'https://irec.app/problems/album-asset-status',
+        title: 'Asset status transition not allowed',
+        status: 409,
+        detail: 'Solo un contenido pendiente puede pasar a fallido.',
+      });
+    }
+
+    const [updated] = await this.dbs.db
+      .update(albumAssets)
+      .set({ status: 'failed', updatedAt: new Date() })
+      .where(eq(albumAssets.id, assetId))
+      .returning();
+
+    if (!updated) throw this.assetNotFound();
+    return this.toContract(updated);
+  }
+
   async requestDelete(
     albumId: string,
     assetId: string,

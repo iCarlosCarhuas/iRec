@@ -51,6 +51,25 @@ export type FinalizeAlbumAssetInput = z.infer<
   typeof FinalizeAlbumAssetInput
 >;
 
+// Multipart upload (POST /albums/:albumId/assets/upload).
+// File bytes travel as the `file` part; every other value is a text field.
+// The client MUST send text fields before the file part and declare the exact
+// byte length up front so mime/size guards run before any provider session.
+export const UploadAlbumAssetFieldsSchema = z.object({
+  storageConnectionId: z.string().uuid(),
+  sizeBytes: z.coerce.number().int().positive().max(MAX_ALBUM_ASSET_SIZE_BYTES),
+});
+export type UploadAlbumAssetFields = z.infer<typeof UploadAlbumAssetFieldsSchema>;
+
+export const UploadAlbumAssetMultipartSchema = UploadAlbumAssetFieldsSchema.extend({
+  file: z
+    .string()
+    .describe(
+      'Binary bytes (image/jpeg, image/png, image/webp, video/mp4, <= 100MB). Must be the last part; sizeBytes must equal the exact file length.',
+    ),
+});
+export type UploadAlbumAssetMultipart = z.infer<typeof UploadAlbumAssetMultipartSchema>;
+
 export const AlbumAssetContract = z.object({
   id: AlbumAssetId,
   albumId: z.string().uuid(),
