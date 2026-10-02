@@ -5,13 +5,18 @@ export type AlbumReadPolicyInput = {
   ownerId: string;
   viewerId?: string;
   hasActiveMembership: boolean;
+  hasApprovedProposal?: boolean;
 };
 
 export function canReadAlbum(input: AlbumReadPolicyInput): boolean {
   if (input.visibility === 'public') return true;
   if (!input.viewerId) return false;
   if (input.ownerId === input.viewerId) return true;
-  return input.hasActiveMembership;
+  if (input.hasActiveMembership) return true;
+  // Approved proposal viewers may read private content after the owner
+  // moderates. QR/invite possession alone never grants this: the exchange
+  // must go through members/accept or a proposal approve first.
+  return input.hasApprovedProposal === true;
 }
 
 export function canUpdateAlbum(ownerId: string, viewerId: string): boolean {

@@ -1,10 +1,15 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import type { AlbumContract } from '@irec/contracts';
+import type { AlbumAssetContract, AlbumContract } from '@irec/contracts';
 import { firstValueFrom } from 'rxjs';
 
+import { uiError } from '../../core/http/ui-error';
 import { AuthStore } from '../../core/auth/auth-store.service';
-import { AlbumApiService } from './album-api.service';
+import {
+  AlbumApiService,
+  isPreviewLimitedImageMime,
+  isVideoAssetMime,
+} from './album-api.service';
 
 @Component({
   standalone: true,
@@ -57,19 +62,98 @@ import { AlbumApiService } from './album-api.service';
             </div>
           </header>
 
-          <section class="public-album-content panel">
-            <div class="public-album-placeholder" aria-hidden="true">
-              <span></span><span></span><span></span>
-            </div>
+          <section class="public-album-content panel" aria-label="Recuerdos del album">
             <div>
               <span class="panel-label">Recuerdos</span>
-              <h2>Este album ya tiene una pagina publica.</h2>
+              <h2>Fotos y videos publicados</h2>
               <p>
-                Las fotos y videos publicados por su propietario apareceran aqui
-                cuando el contenido multimedia este habilitado.
+                Contenido listo del album, solo lectura. Los archivos se
+                guardan en el Google Drive de su propietario y nunca se hacen
+                publicos por enlace.
               </p>
             </div>
+
+            @if (galleryLoading()) {
+              <div class="loading-panel">
+                <div class="loader"></div>
+                <span>Cargando recuerdos…</span>
+              </div>
+            } @else if (galleryError()) {
+              <div class="notice error">
+                {{ galleryError() }}
+                <div class="button-row">
+                  <button class="button ghost" type="button" (click)="loadGallery()">
+                    Reintentar
+                  </button>
+                </div>
+              </div>
+            } @else if (assets().length === 0) {
+              <div>
+                <div class="public-album-placeholder" aria-hidden="true">
+                  <span></span><span></span><span></span>
+                </div>
+                <p class="empty-state">
+                  Este album aun no tiene fotos ni videos publicados.
+                </p>
+              </div>
+            } @else {
+              <div class="asset-grid" aria-label="Galeria publica del album">
+                @for (asset of assets(); track asset.id) {
+                  @if (isVideoAsset(asset.mimeType)) {
+                    <button
+                      class="asset-thumb"
+                      type="button"
+                      [title]="asset.originalName"
+                      [attr.aria-label]="'Ver video ' + asset.originalName"
+                      (click)="openAsset(asset)"
+                    >
+                      <video [src]="contentUrl(asset)" preload="metadata" muted playsinline></video>
+                      <span class="asset-badge">Video</span>
+                    </button>
+                  } @else {
+                    <button
+                      class="asset-thumb"
+                      type="button"
+                      [title]="asset.originalName"
+                      [attr.aria-label]="'Ver foto ' + asset.originalName"
+                      (click)="openAsset(asset)"
+                    >
+                      <img [src]="contentUrl(asset)" [alt]="asset.originalName" loading="lazy" />
+                    </button>
+                  }
+                }
+              </div>
+            }
           </section>
+
+          @if (activeAsset(); as current) {
+            <div class="asset-dialog-backdrop" (click)="closeAsset()">
+              <div
+                class="asset-dialog panel"
+                role="dialog"
+                aria-modal="true"
+                [attr.aria-label]="current.originalName"
+                (click)="$event.stopPropagation()"
+              >
+                <h3>{{ current.originalName }}</h3>
+                @if (isVideoAsset(current.mimeType)) {
+                  <video [src]="contentUrl(current)" controls preload="metadata" playsinline></video>
+                } @else {
+                  <img [src]="contentUrl(current)" [alt]="current.originalName" />
+                }
+                @if (isPreviewLimitedImage(current.mimeType)) {
+                  <p class="quiet-status">
+                    La vista previa de heic/heif es limitada en algunos navegadores.
+                  </p>
+                }
+                <div class="button-row asset-dialog-actions">
+                  <button class="button ghost" type="button" (click)="closeAsset()">
+                    Cerrar
+                  </button>
+                </div>
+              </div>
+            </div>
+          }
 
           <footer class="public-album-footer">
             <a routerLink="/">iRec</a>
@@ -89,6 +173,11 @@ export class PublicAlbumPage implements OnInit {
   readonly loading = signal(true);
   readonly copied = signal(false);
 
+  readonly assets = signal<readonly AlbumAssetContract[]>([]);
+  readonly galleryLoading = signal(false);
+  readonly galleryError = signal('');
+  readonly activeAsset = signal<AlbumAssetContract | null>(null);
+
   private readonly albumId = this.route.snapshot.paramMap.get('albumId') ?? '';
 
   ngOnInit(): void {
@@ -107,13 +196,61 @@ export class PublicAlbumPage implements OnInit {
       const album = await firstValueFrom(this.api.get(this.albumId));
       // This route is a share/public surface. Even an authenticated owner/member
       // must not make a private album look publicly shareable.
-      this.album.set(album.visibility === 'public' ? album : null);
+      if (album.visibility !== 'public') {
+        this.album.set(null);
+        return;
+      }
+      this.album.set(album);
+      await this.loadGallery();
     } catch {
       // Deliberately generic: do not reveal whether a private album exists.
       this.album.set(null);
     } finally {
       this.loading.set(false);
     }
+  }
+
+  async loadGallery(): Promise<void> {
+    if (!this.albumId) return;
+    this.galleryLoading.set(true);
+    this.galleryError.set('');
+    try {
+      const result = await firstValueFrom(this.api.listPublicAssets(this.albumId));
+      this.assets.set(result.assets);
+      const active = this.activeAsset();
+      if (active && !result.assets.some((asset) => asset.id === active.id)) {
+        this.activeAsset.set(null);
+      }
+    } catch (error: unknown) {
+      this.assets.set([]);
+      this.galleryError.set(
+        error instanceof Error && 'message' in error
+          ? uiError(error, 'No pudimos cargar las fotos y videos.')
+          : 'No pudimos cargar las fotos y videos.',
+      );
+    } finally {
+      this.galleryLoading.set(false);
+    }
+  }
+
+  contentUrl(asset: AlbumAssetContract): string {
+    return this.api.publicContentUrl(this.albumId, asset.id);
+  }
+
+  isVideoAsset(mimeType: string): boolean {
+    return isVideoAssetMime(mimeType);
+  }
+
+  isPreviewLimitedImage(mimeType: string): boolean {
+    return isPreviewLimitedImageMime(mimeType);
+  }
+
+  openAsset(asset: AlbumAssetContract): void {
+    this.activeAsset.set(asset);
+  }
+
+  closeAsset(): void {
+    this.activeAsset.set(null);
   }
 
   async copyLink(): Promise<void> {

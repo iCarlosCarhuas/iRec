@@ -16,6 +16,7 @@ import { DatabaseService } from '../database/database.service.js';
 import {
   albumAssets,
   albumMembers,
+  albumProposals,
   albums,
   storageConnections,
 } from '../database/schema.js';
@@ -82,6 +83,7 @@ export class AlbumAssetsService {
   ): Promise<AlbumAssetsResponse> {
     const album = await this.requireAlbum(albumId);
     const membership = await this.membershipFor(album, viewerId);
+    const approved = await this.hasApprovedProposal(album, viewerId, membership);
 
     if (
       !canReadAlbum({
@@ -89,6 +91,7 @@ export class AlbumAssetsService {
         ownerId: album.ownerId,
         viewerId,
         hasActiveMembership: membership,
+        hasApprovedProposal: approved,
       })
     ) {
       // Private albums are intentionally indistinguishable from missing albums.
@@ -106,7 +109,40 @@ export class AlbumAssetsService {
       )
       .orderBy(asc(albumAssets.createdAt));
 
-    return { assets: rows.map((row) => this.toContract(row)) };
+    // Pending/failed submissions stay owner-only until ready: public
+    // visitors, members, and approved viewers only see ready assets.
+    const isOwner = viewerId !== undefined && album.ownerId === viewerId;
+    const visible = isOwner ? rows : rows.filter((row) => row.status === 'ready');
+    return { assets: visible.map((row) => this.toContract(row)) };
+  }
+
+  /**
+   * Anonymous public gallery: only public albums, only ready assets.
+   * No session is required or trusted; private albums read as missing
+   * (404) and pending/failed/deleted rows never surface. The contract
+   * keeps storageConnectionId + providerFileId per asset and carries no
+   * uploader emails or tokens.
+   */
+  async listPublicAssets(albumId: string): Promise<AlbumAssetsResponse> {
+    const album = await this.requireAlbum(albumId);
+    if (album.visibility !== 'public') throw this.albumNotFound();
+
+    const rows = await this.dbs.db
+      .select()
+      .from(albumAssets)
+      .where(
+        and(
+          eq(albumAssets.albumId, albumId),
+          ne(albumAssets.status, 'deleted'),
+        ),
+      )
+      .orderBy(asc(albumAssets.createdAt));
+
+    return {
+      assets: rows
+        .filter((row) => row.status === 'ready')
+        .map((row) => this.toContract(row)),
+    };
   }
 
   /**
@@ -216,6 +252,7 @@ export class AlbumAssetsService {
   ): Promise<AlbumAssetContract> {
     const album = await this.requireAlbum(albumId);
     const membership = await this.membershipFor(album, viewerId);
+    const approved = await this.hasApprovedProposal(album, viewerId, membership);
 
     if (
       !canReadAlbum({
@@ -223,6 +260,7 @@ export class AlbumAssetsService {
         ownerId: album.ownerId,
         viewerId,
         hasActiveMembership: membership,
+        hasApprovedProposal: approved,
       })
     ) {
       throw this.albumNotFound();
@@ -230,6 +268,29 @@ export class AlbumAssetsService {
 
     const asset = await this.requireScopedAsset(albumId, assetId);
     if (asset.status === 'deleted') throw this.assetNotFound();
+    // Restricted preview: pending/failed rows are owner-only. Members,
+    // approved viewers, and public visitors read them as missing (404)
+    // so QR possession or id guessing never reveals unapproved content.
+    if (asset.status !== 'ready' && album.ownerId !== viewerId) {
+      throw this.assetNotFound();
+    }
+    return this.toContract(asset);
+  }
+
+  /**
+   * Anonymous public metadata for one ready asset. Private albums read as
+   * missing; non-ready rows read as missing (never 409 here, to avoid
+   * revealing pending submissions on the public surface).
+   */
+  async getPublicAsset(
+    albumId: string,
+    assetId: string,
+  ): Promise<AlbumAssetContract> {
+    const album = await this.requireAlbum(albumId);
+    if (album.visibility !== 'public') throw this.albumNotFound();
+
+    const asset = await this.requireScopedAsset(albumId, assetId);
+    if (asset.status !== 'ready') throw this.assetNotFound();
     return this.toContract(asset);
   }
 
@@ -404,6 +465,35 @@ export class AlbumAssetsService {
       .limit(1);
 
     return Boolean(membership);
+  }
+
+  /**
+   * Approved-proposal viewers may read private assets after owner
+   * moderation. Invited-but-not-accepted memberships and raw QR
+   * possession grant nothing: only an `approved` proposal row counts.
+   */
+  private async hasApprovedProposal(
+    album: AlbumRow,
+    viewerId: string | undefined,
+    hasActiveMembership: boolean,
+  ): Promise<boolean> {
+    if (!viewerId || album.ownerId === viewerId || hasActiveMembership) {
+      return false;
+    }
+
+    const [proposal] = await this.dbs.db
+      .select({ id: albumProposals.id })
+      .from(albumProposals)
+      .where(
+        and(
+          eq(albumProposals.albumId, album.id),
+          eq(albumProposals.proposedBy, viewerId),
+          eq(albumProposals.status, 'approved'),
+        ),
+      )
+      .limit(1);
+
+    return Boolean(proposal);
   }
 
   private toContract(row: AlbumAssetRow): AlbumAssetContract {

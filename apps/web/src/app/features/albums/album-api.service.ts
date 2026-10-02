@@ -178,6 +178,18 @@ export class AlbumApiService {
     );
   }
 
+  /** Anonymous public gallery: no session, only public + ready assets. */
+  listPublicAssets(albumId: string): Observable<AlbumAssetsResponse> {
+    return this.http.get<AlbumAssetsResponse>(
+      `${this.base}/${encodeURIComponent(albumId)}/public-assets`,
+    );
+  }
+
+  /** Anonymous public content proxy (no cookies needed). */
+  publicContentUrl(albumId: string, assetId: string): string {
+    return `${this.base}/${encodeURIComponent(albumId)}/public-assets/${encodeURIComponent(assetId)}/content`;
+  }
+
   /**
    * Multipart upload with progress events. Text fields are appended before
    * the `file` part because the backend validates them before streaming.

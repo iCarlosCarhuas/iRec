@@ -103,6 +103,64 @@ export class AlbumAssetContentService {
   }
 
   /**
+   * Anonymous public byte proxy: only public albums + ready assets. No
+   * session is trusted; the Drive file is never made public and no
+   * token material is returned. Same mime/range/inline behavior as the
+   * private proxy.
+   */
+  async streamPublicContent(
+    albumId: string,
+    assetId: string,
+    rangeHeader: string | undefined,
+  ): Promise<AssetContentStream> {
+    const asset = await this.assets.getPublicAsset(albumId, assetId);
+
+    if (!asset.providerFileId) {
+      throw new HttpException(
+        {
+          type: 'https://irec.app/problems/album-asset-not-ready',
+          title: 'Asset not ready',
+          status: 409,
+          detail: 'El contenido aun no esta disponible para lectura.',
+        },
+        409,
+      );
+    }
+
+    const range = parseAssetRangeHeader(rangeHeader, asset.sizeBytes);
+    const ref = {
+      connectionId: asset.storageConnectionId,
+      ownerId: asset.uploadedBy,
+    };
+
+    const metadata = await this.drive.getMetadata(ref, asset.providerFileId);
+    if (
+      metadata.sizeBytes !== asset.sizeBytes ||
+      metadata.mimeType.toLowerCase() !== asset.mimeType.toLowerCase()
+    ) {
+      throw new BadGatewayException(
+        'Google Drive devolvio una respuesta invalida.',
+      );
+    }
+
+    const media = await this.drive.downloadMedia(
+      ref,
+      asset.providerFileId,
+      range ?? undefined,
+    );
+
+    return {
+      status: media.status,
+      mimeType: asset.mimeType,
+      contentLength: media.contentLength,
+      contentRange: media.contentRange,
+      totalLength: asset.sizeBytes,
+      fileName: asset.originalName,
+      body: media.body,
+    };
+  }
+
+  /**
    * Authz first, provider delete second, local finalize last. A provider
    * file that is already gone still finalizes the local row as deleted
    * (with a server-side warning); any other provider failure propagates

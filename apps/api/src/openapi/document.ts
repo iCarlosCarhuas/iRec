@@ -705,6 +705,55 @@ Web: http://127.0.0.1:4200 · API: http://127.0.0.1:3000 · Mailpit: http://127.
         },
       },
     },
+    '/albums/{albumId}/public-assets': {
+      get: {
+        operationId: 'albumPublicAssetList',
+        tags: ['Albums'],
+        summary: 'Lista publica anonima: solo album publico y contenidos listos',
+        description: 'Sin sesion ni tokens. Solo sirve albumes con visibilidad publica y activos en estado listo; los pendientes/fallidos/eliminados nunca aparecen. Cada activo incluye storageConnectionId y providerFileId sin correos ni tokens. Los albumes privados responden 404 indistinguibles de inexistentes.',
+        requestParams: { path: AlbumIdParamsSchema },
+        responses: {
+          '200': { description: 'Contenidos publicos listos', content: json(AlbumAssetsResponseSchema) },
+          '404': {
+            description: 'Album privado/inexistente',
+            content: { 'application/problem+json': { schema: ProblemDetailsSchema } },
+          },
+          '422': {
+            description: 'Identificador invalido',
+            content: { 'application/problem+json': { schema: ProblemDetailsSchema } },
+          },
+        },
+      },
+    },
+    '/albums/{albumId}/public-assets/{assetId}/content': {
+      get: {
+        operationId: 'albumPublicAssetContent',
+        tags: ['Albums'],
+        summary: 'Transmite bytes publicos anonimos desde Drive (proxy seguro)',
+        description: 'Sin sesion ni tokens. Solo album publico + contenido listo. El archivo Drive nunca se hace publico y no se emiten URL con tokens. Mismo mime/rango/inline que el proxy privado: Accept-Ranges: bytes, un Range de un solo rango devuelve 206 + Content-Range, o 416 si es insatisfacible. Content-Disposition: inline.',
+        requestParams: { path: AlbumAssetParamsSchema },
+        responses: {
+          '200': { description: 'Bytes completos del contenido publico' },
+          '206': { description: 'Rango parcial de bytes (video seeking)' },
+          '404': {
+            description: 'Album privado/inexistente o contenido no listo/eliminado/ajeno',
+            content: { 'application/problem+json': { schema: ProblemDetailsSchema } },
+          },
+          '416': {
+            description: 'Rango fuera del contenido',
+            content: { 'application/problem+json': { schema: ProblemDetailsSchema } },
+          },
+          '502': {
+            description: 'El proveedor fallo o devolvio bytes que no coinciden con el registro',
+            content: { 'application/problem+json': { schema: ProblemDetailsSchema } },
+          },
+          '422': {
+            description: 'Identificador invalido',
+            content: { 'application/problem+json': { schema: ProblemDetailsSchema } },
+          },
+        },
+      },
+    },
 
     '/storage/connections': {
       get: {

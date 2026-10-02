@@ -6,6 +6,7 @@ import { AlbumController } from './album.controller.js';
 import { AlbumAssetUploadService } from './album-asset-upload.service.js';
 import { AlbumAssetContentService } from './album-asset-content.service.js';
 import { AlbumAssetsController } from './album-assets.controller.js';
+import { AlbumPublicAssetsController } from './album-public-assets.controller.js';
 import { AlbumAssetsService } from './album-assets.service.js';
 import { AlbumMembersController } from './album-members.controller.js';
 import { AlbumMembersService } from './album-members.service.js';
@@ -18,6 +19,7 @@ import { AlbumService } from './album.service.js';
   controllers: [
     AlbumController,
     AlbumAssetsController,
+    AlbumPublicAssetsController,
     AlbumMembersController,
     AlbumProposalsController,
   ],
