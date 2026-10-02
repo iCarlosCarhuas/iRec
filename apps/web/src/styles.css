@@ -1881,3 +1881,191 @@ input::placeholder {
     flex-direction: column;
   }
 }
+
+/* v0.4 B4 · Album recuerdos (Drive gallery, same tokens/components) */
+.assets-panel {
+  margin-bottom: 14px;
+}
+
+.assets-panel > .panel-title-row .button {
+  flex-shrink: 0;
+}
+
+.offline-note {
+  margin-top: 12px;
+  color: var(--muted-2);
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+.upload-block {
+  display: grid;
+  gap: 12px;
+  margin-top: 18px;
+  padding-top: 17px;
+  border-top: 1px solid rgba(255, 255, 255, 0.065);
+}
+
+.drive-select,
+.upload-label {
+  display: grid;
+  gap: 7px;
+}
+
+.drive-select > span,
+.upload-label > span {
+  color: #cbd0d8;
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.drive-select select {
+  width: 100%;
+  min-height: 48px;
+  border: 1px solid var(--border-strong);
+  outline: none;
+  border-radius: 11px;
+  background: #0a0d12;
+  color: var(--text);
+  font: inherit;
+}
+
+.drive-select select:focus {
+  border-color: #6e7c48;
+  box-shadow: 0 0 0 3px rgba(217, 255, 111, 0.07);
+}
+
+.upload-label input[type="file"] {
+  min-height: 48px;
+  padding: 12px;
+  border: 1px dashed var(--border-strong);
+  border-radius: 11px;
+  background: #0a0d12;
+  color: var(--text);
+  font-size: 12px;
+}
+
+.upload-label input[type="file"]:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.upload-progress {
+  display: grid;
+  gap: 6px;
+}
+
+.upload-progress progress {
+  width: 100%;
+  height: 10px;
+  accent-color: var(--accent);
+}
+
+.asset-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.asset-thumb {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  min-height: 180px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: #0a0d12;
+  cursor: pointer;
+}
+
+.asset-thumb img,
+.asset-thumb video {
+  display: block;
+  width: 100%;
+  height: 180px;
+  object-fit: cover;
+}
+
+.asset-thumb:hover {
+  border-color: var(--border-strong);
+}
+
+.asset-badge {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.65);
+  color: var(--text);
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.asset-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background: rgba(4, 6, 9, 0.72);
+}
+
+.asset-dialog {
+  display: grid;
+  gap: 12px;
+  width: min(100%, 720px);
+  max-height: calc(100vh - 60px);
+  overflow: auto;
+}
+
+.asset-dialog h3 {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-size: 18px;
+}
+
+.asset-dialog img,
+.asset-dialog video {
+  display: block;
+  width: 100%;
+  max-height: 62vh;
+  border-radius: 12px;
+  background: #000;
+  object-fit: contain;
+}
+
+.asset-dialog-actions {
+  margin-top: 0;
+}
+
+.asset-dialog-actions .mini-button.danger {
+  min-height: 46px;
+  padding: 0 17px;
+  font-size: 13px;
+}
+
+@media (max-width: 920px) {
+  .asset-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .asset-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .asset-thumb,
+  .asset-thumb img,
+  .asset-thumb video {
+    height: 150px;
+  }
+
+  .asset-thumb {
+    min-height: 150px;
+  }
+}

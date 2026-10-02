@@ -1,6 +1,8 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, type HttpEvent } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import type {
+  AlbumAssetContract,
+  AlbumAssetsResponse,
   AlbumContract,
   AlbumListResponse,
   AlbumMemberViewContract,
@@ -115,6 +117,45 @@ export class AlbumApiService {
     return this.http.post<AlbumProposalViewContract>(
       `${this.base}/${encodeURIComponent(albumId)}/proposals/${encodeURIComponent(proposalId)}/reject`,
       {},
+      { withCredentials: true },
+    );
+  }
+
+  listAssets(albumId: string): Observable<AlbumAssetsResponse> {
+    return this.http.get<AlbumAssetsResponse>(
+      `${this.base}/${encodeURIComponent(albumId)}/assets`,
+      { withCredentials: true },
+    );
+  }
+
+  /**
+   * Multipart upload with progress events. Text fields are appended before
+   * the `file` part because the backend validates them before streaming.
+   * Session travels in cookies; no tokens are stored or sent manually.
+   */
+  uploadAsset(
+    albumId: string,
+    input: { storageConnectionId: string; sizeBytes: number; file: File },
+  ): Observable<HttpEvent<AlbumAssetContract>> {
+    const form = new FormData();
+    form.append('storageConnectionId', input.storageConnectionId);
+    form.append('sizeBytes', String(input.sizeBytes));
+    form.append('file', input.file, input.file.name);
+    return this.http.post<AlbumAssetContract>(
+      `${this.base}/${encodeURIComponent(albumId)}/assets/upload`,
+      form,
+      { withCredentials: true, reportProgress: true, observe: 'events' },
+    );
+  }
+
+  /** Same-origin content proxy; the browser sends session cookies itself. */
+  contentUrl(albumId: string, assetId: string): string {
+    return `${this.base}/${encodeURIComponent(albumId)}/assets/${encodeURIComponent(assetId)}/content`;
+  }
+
+  deleteAsset(albumId: string, assetId: string): Observable<SuccessResponse> {
+    return this.http.delete<SuccessResponse>(
+      `${this.base}/${encodeURIComponent(albumId)}/assets/${encodeURIComponent(assetId)}`,
       { withCredentials: true },
     );
   }

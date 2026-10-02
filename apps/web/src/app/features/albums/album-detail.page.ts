@@ -1,16 +1,24 @@
+import { HttpEventType } from '@angular/common/http';
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import type {
-  AlbumContract,
-  AlbumMemberViewContract,
-  AlbumProposalViewContract,
-  AlbumVisibility,
+import {
+  MAX_ALBUM_ASSET_SIZE_BYTES,
+  type AlbumAssetContract,
+  type AlbumContract,
+  type AlbumMemberViewContract,
+  type AlbumProposalViewContract,
+  type AlbumVisibility,
+  type StorageConnectionContract,
 } from '@irec/contracts';
 import { firstValueFrom } from 'rxjs';
 
 import { AuthStore } from '../../core/auth/auth-store.service';
 import { uiError } from '../../core/http/ui-error';
+import { StorageApiService } from '../storage/storage-api.service';
 import { AlbumApiService } from './album-api.service';
+
+const PREFERRED_CONNECTION_KEY = 'irec.preferredStorageConnectionId';
+const ALLOWED_UPLOAD_MIME = ['image/jpeg', 'image/png', 'image/webp', 'video/mp4'];
 
 @Component({
   standalone: true,
@@ -115,6 +123,172 @@ import { AlbumApiService } from './album-api.service';
             </form>
           </section>
         }
+
+        <section class="panel assets-panel" aria-label="Recuerdos del album">
+          <div class="panel-title-row">
+            <div>
+              <span class="panel-label">Recuerdos</span>
+              <h2>Fotos y videos</h2>
+              <p>
+                Guardados en tu Google Drive, nunca publicos por enlace.
+                El album sigue siendo {{ current.visibility === 'public' ? 'publico' : 'privado' }}.
+              </p>
+            </div>
+            <button
+              class="button ghost"
+              type="button"
+              [disabled]="assetsLoading() || uploading()"
+              (click)="loadAssets()"
+            >
+              {{ assetsLoading() ? 'Cargando…' : 'Actualizar' }}
+            </button>
+          </div>
+
+          <p class="offline-note">
+            Sin conexion no se suben ni se cargan fotos nuevas; lo ya visto
+            puede seguir disponible en la cache de la app.
+          </p>
+
+          @if (canUpload()) {
+            <div class="upload-block">
+              @if (readyConnections().length > 1) {
+                <label class="drive-select">
+                  <span>Guardar en</span>
+                  <select
+                    [value]="selectedConnectionId() ?? ''"
+                    [disabled]="uploading()"
+                    (change)="selectConnection($any($event.target).value)"
+                  >
+                    @for (connection of readyConnections(); track connection.id) {
+                      <option [value]="connection.id">
+                        {{ connection.displayName || 'Google Drive' }}
+                      </option>
+                    }
+                  </select>
+                </label>
+              } @else if (readyConnections().length === 1) {
+                <p class="quiet-status">
+                  Se guardara en {{ readyConnections()[0].displayName || 'Google Drive' }}.
+                </p>
+              } @else {
+                <div class="notice warning">
+                  Conecta y prepara Google Drive antes de subir.
+                  <a class="inline-link" routerLink="/settings/storage">Abrir almacenamiento</a>
+                </div>
+              }
+
+              <label class="upload-label">
+                <span>Subir foto o video (jpeg, png, webp o mp4, maximo {{ maxUploadMb() }} MB)</span>
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,video/mp4"
+                  [disabled]="!selectedConnectionId() || uploading()"
+                  (change)="onFileSelected($event)"
+                />
+              </label>
+
+              @if (uploading()) {
+                <div role="status" aria-live="polite" class="upload-progress">
+                  <progress [value]="uploadProgress()" max="100"></progress>
+                  <span>Subiendo… {{ uploadProgress() }}%</span>
+                </div>
+              }
+              @if (uploadSuccess()) {
+                <div class="notice success">{{ uploadSuccess() }}</div>
+              }
+              @if (uploadError()) {
+                <div class="notice error">{{ uploadError() }}</div>
+              }
+            </div>
+          }
+
+          @if (assetsLoading()) {
+            <div class="loading-panel">
+              <div class="loader"></div>
+              <span>Cargando recuerdos…</span>
+            </div>
+          } @else if (assetsError()) {
+            <div class="notice error">
+              {{ assetsError() }}
+              <div class="button-row">
+                <button class="button ghost" type="button" (click)="loadAssets()">
+                  Reintentar
+                </button>
+              </div>
+            </div>
+          } @else if (assets().length === 0) {
+            <p class="empty-state">
+              Este album aun no tiene fotos ni videos.
+              @if (canUpload()) {
+                Sube el primero desde tu Google Drive.
+              }
+            </p>
+          } @else {
+            <div class="asset-grid" aria-label="Galeria del album">
+              @for (asset of assets(); track asset.id) {
+                @if (asset.mimeType === 'video/mp4') {
+                  <button
+                    class="asset-thumb"
+                    type="button"
+                    [title]="assetTitle(asset)"
+                    [attr.aria-label]="'Ver video ' + asset.originalName"
+                    (click)="openAsset(asset)"
+                  >
+                    <video [src]="contentUrl(asset)" preload="metadata" muted playsinline></video>
+                    <span class="asset-badge">Video</span>
+                  </button>
+                } @else {
+                  <button
+                    class="asset-thumb"
+                    type="button"
+                    [title]="assetTitle(asset)"
+                    [attr.aria-label]="'Ver foto ' + asset.originalName"
+                    (click)="openAsset(asset)"
+                  >
+                    <img [src]="contentUrl(asset)" [alt]="asset.originalName" loading="lazy" />
+                  </button>
+                }
+              }
+            </div>
+          }
+
+          @if (activeAsset(); as current) {
+            <div class="asset-dialog-backdrop" (click)="closeAsset()">
+              <div
+                class="asset-dialog panel"
+                role="dialog"
+                aria-modal="true"
+                [attr.aria-label]="current.originalName"
+                (click)="$event.stopPropagation()"
+              >
+                <h3>{{ current.originalName }}</h3>
+                @if (current.mimeType === 'video/mp4') {
+                  <video [src]="contentUrl(current)" controls preload="metadata" playsinline></video>
+                } @else {
+                  <img [src]="contentUrl(current)" [alt]="current.originalName" />
+                }
+                <div class="button-row asset-dialog-actions">
+                  <button class="button ghost" type="button" (click)="closeAsset()">
+                    Cerrar
+                  </button>
+                  @if (canDeleteAsset(current)) {
+                    <button
+                      class="mini-button danger"
+                      type="button"
+                      [disabled]="deleting()"
+                      (click)="deleteAsset(current)"
+                    >
+                      {{ deleting() ? 'Eliminando…' : 'Eliminar' }}
+                    </button>
+                  }
+                </div>
+                @if (deleteError()) {
+                  <div class="notice error">{{ deleteError() }}</div>
+                }
+              </div>
+            </div>
+          }
+        </section>
 
         <section class="album-workspace-grid">
           <article class="panel members-panel">
@@ -258,8 +432,8 @@ import { AlbumApiService } from './album-api.service';
               <span class="panel-label">Colaboracion</span>
               <h2>Propone algo para el album</h2>
               <p>
-                En v0.3 la propuesta es texto. Cuando llegue Photos/R2, este mismo
-                flujo servira para contenido multimedia.
+                En v0.4 la propuesta sigue siendo texto. Las fotos y videos del
+                album se suben en la seccion Recuerdos con tu Google Drive.
               </p>
 
               <form class="proposal-form" (submit)="createProposal($event)">
@@ -304,6 +478,7 @@ import { AlbumApiService } from './album-api.service';
 })
 export class AlbumDetailPage implements OnInit {
   private readonly api = inject(AlbumApiService);
+  private readonly storage = inject(StorageApiService);
   private readonly route = inject(ActivatedRoute);
   readonly auth = inject(AuthStore);
 
@@ -335,6 +510,19 @@ export class AlbumDetailPage implements OnInit {
   readonly proposalSubmitError = signal('');
   readonly moderatingId = signal<string | null>(null);
 
+  readonly assets = signal<readonly AlbumAssetContract[]>([]);
+  readonly assetsLoading = signal(false);
+  readonly assetsError = signal('');
+  readonly readyConnections = signal<readonly StorageConnectionContract[]>([]);
+  readonly selectedConnectionId = signal<string | null>(null);
+  readonly uploading = signal(false);
+  readonly uploadProgress = signal(0);
+  readonly uploadError = signal('');
+  readonly uploadSuccess = signal('');
+  readonly activeAsset = signal<AlbumAssetContract | null>(null);
+  readonly deleting = signal(false);
+  readonly deleteError = signal('');
+
   private readonly albumId = this.route.snapshot.paramMap.get('albumId') ?? '';
 
   readonly isOwner = computed(
@@ -350,6 +538,10 @@ export class AlbumDetailPage implements OnInit {
 
   readonly canPropose = computed(
     () => !this.isOwner() && this.myMembership()?.status === 'active',
+  );
+
+  readonly canUpload = computed(
+    () => this.isOwner() || this.myMembership()?.status === 'active',
   );
 
   readonly pendingCount = computed(
@@ -377,6 +569,10 @@ export class AlbumDetailPage implements OnInit {
       await this.loadMembers();
       if (album.ownerId === this.auth.user()?.id) {
         await this.loadProposals();
+      }
+      await this.loadAssets();
+      if (this.canUpload()) {
+        await this.loadUploadConnections();
       }
     } catch (error) {
       this.error.set(uiError(error, 'No pudimos abrir este album.'));
@@ -550,6 +746,160 @@ export class AlbumDetailPage implements OnInit {
       this.proposalsError.set(uiError(error, 'No pudimos moderar la propuesta.'));
     } finally {
       this.moderatingId.set(null);
+    }
+  }
+
+  async loadAssets(): Promise<void> {
+    if (!this.albumId) return;
+    this.assetsLoading.set(true);
+    this.assetsError.set('');
+    try {
+      const result = await firstValueFrom(this.api.listAssets(this.albumId));
+      this.assets.set(result.assets);
+      const active = this.activeAsset();
+      if (active && !result.assets.some((asset) => asset.id === active.id)) {
+        this.activeAsset.set(null);
+      }
+    } catch (error) {
+      this.assetsError.set(uiError(error, 'No pudimos cargar las fotos y videos.'));
+    } finally {
+      this.assetsLoading.set(false);
+    }
+  }
+
+  async loadUploadConnections(): Promise<void> {
+    try {
+      const result = await firstValueFrom(this.storage.list());
+      const ready = result.connections.filter((connection) => connection.status === 'ready');
+      this.readyConnections.set(ready);
+      const preferred = this.readPreferredConnection();
+      this.selectedConnectionId.set(
+        preferred && ready.some((connection) => connection.id === preferred)
+          ? preferred
+          : (ready[0]?.id ?? null),
+      );
+    } catch {
+      this.readyConnections.set([]);
+      this.selectedConnectionId.set(null);
+    }
+  }
+
+  selectConnection(connectionId: string): void {
+    if (this.uploading()) return;
+    this.selectedConnectionId.set(connectionId || null);
+    if (connectionId) this.writePreferredConnection(connectionId);
+  }
+
+  onFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement | null;
+    const file = input?.files?.[0];
+    if (!file || this.uploading()) return;
+    this.uploadSuccess.set('');
+    const connectionId = this.selectedConnectionId();
+    if (!connectionId) {
+      this.uploadError.set('Elige una conexion de Google Drive antes de subir.');
+      return;
+    }
+    if (file.type && !ALLOWED_UPLOAD_MIME.includes(file.type)) {
+      this.uploadError.set('Tipo de archivo no permitido: solo jpeg, png, webp o mp4.');
+      return;
+    }
+    if (!Number.isFinite(file.size) || file.size <= 0) {
+      this.uploadError.set('El archivo no es valido.');
+      return;
+    }
+    if (file.size > MAX_ALBUM_ASSET_SIZE_BYTES) {
+      this.uploadError.set(`El archivo supera el limite de ${this.maxUploadMb()} MB.`);
+      return;
+    }
+    this.uploadError.set('');
+    this.uploading.set(true);
+    this.uploadProgress.set(0);
+    this.api.uploadAsset(this.albumId, {
+      storageConnectionId: connectionId,
+      sizeBytes: file.size,
+      file,
+    }).subscribe({
+      next: (httpEvent) => {
+        if (httpEvent.type === HttpEventType.UploadProgress) {
+          const total = httpEvent.total ?? file.size;
+          this.uploadProgress.set(total > 0 ? Math.min(100, Math.round((100 * httpEvent.loaded) / total)) : 0);
+        } else if (httpEvent.type === HttpEventType.Response) {
+          this.uploading.set(false);
+          this.uploadProgress.set(100);
+          this.uploadSuccess.set('Recuerdo guardado en tu Google Drive.');
+          if (input) input.value = '';
+          void this.loadAssets();
+        }
+      },
+      error: (error: unknown) => {
+        this.uploading.set(false);
+        this.uploadError.set(uiError(error, 'No pudimos subir el archivo.'));
+        if (input) input.value = '';
+      },
+    });
+  }
+
+  openAsset(asset: AlbumAssetContract): void {
+    this.deleteError.set('');
+    this.activeAsset.set(asset);
+  }
+
+  closeAsset(): void {
+    if (this.deleting()) return;
+    this.activeAsset.set(null);
+  }
+
+  async deleteAsset(asset: AlbumAssetContract): Promise<void> {
+    if (this.deleting() || !this.canDeleteAsset(asset)) return;
+    if (typeof window !== 'undefined' && !window.confirm('¿Eliminar este recuerdo? Tambien se borra de Google Drive.')) {
+      return;
+    }
+    this.deleting.set(true);
+    this.deleteError.set('');
+    try {
+      await firstValueFrom(this.api.deleteAsset(this.albumId, asset.id));
+      if (this.activeAsset()?.id === asset.id) this.activeAsset.set(null);
+      await this.loadAssets();
+    } catch (error) {
+      this.deleteError.set(uiError(error, 'No pudimos eliminar el recuerdo.'));
+    } finally {
+      this.deleting.set(false);
+    }
+  }
+
+  canDeleteAsset(asset: AlbumAssetContract): boolean {
+    if (this.isOwner()) return true;
+    return asset.uploadedBy === this.auth.user()?.id && this.myMembership()?.status === 'active';
+  }
+
+  contentUrl(asset: AlbumAssetContract): string {
+    return this.api.contentUrl(this.albumId, asset.id);
+  }
+
+  assetTitle(asset: AlbumAssetContract): string {
+    return `${asset.originalName} · Conexion ${asset.storageConnectionId}`;
+  }
+
+  maxUploadMb(): number {
+    return Math.round(MAX_ALBUM_ASSET_SIZE_BYTES / 1024 / 1024);
+  }
+
+  private readPreferredConnection(): string | null {
+    try {
+      if (typeof localStorage === 'undefined') return null;
+      return localStorage.getItem(PREFERRED_CONNECTION_KEY);
+    } catch {
+      return null;
+    }
+  }
+
+  private writePreferredConnection(connectionId: string): void {
+    try {
+      if (typeof localStorage === 'undefined') return;
+      localStorage.setItem(PREFERRED_CONNECTION_KEY, connectionId);
+    } catch {
+      // Private mode or unavailable storage: the selector still works for this session.
     }
   }
 

@@ -42,7 +42,7 @@ import { StorageApiService } from './storage-api.service';
           El estado guardado y la ultima verificacion son historicos: no
           garantizan que Drive este disponible ahora. Preparar o verificar
           comprueba el acceso y crea la carpeta iRec si hace falta.
-          La carga de fotos y videos aun no esta disponible aqui.
+          La carga de fotos y videos se hace desde cada album.
         </p>
 
         <div class="button-row">
@@ -54,6 +54,16 @@ import { StorageApiService } from './storage-api.service';
           >
             {{ loading() ? 'Cargando conexiones…' : loadError() ? 'Reintentar lista' : 'Actualizar lista' }}
           </button>
+          @if (connections().length > 0) {
+            <button
+              class="button ghost"
+              type="button"
+              [disabled]="connecting() || loading() || preparingId() !== null"
+              (click)="connectGoogle()"
+            >
+              Conectar otra cuenta
+            </button>
+          }
         </div>
 
         <div role="status" aria-live="polite" class="load-status">
@@ -90,6 +100,10 @@ import { StorageApiService } from './storage-api.service';
                 <div>
                   <dt>Estado guardado</dt>
                   <dd>{{ statusLabel(connection.status) }}</dd>
+                </div>
+                <div>
+                  <dt>Carpeta iRec</dt>
+                  <dd>{{ rootLabel(connection) }}</dd>
                 </div>
                 <div>
                   <dt>Ultima verificacion exitosa</dt>
@@ -238,6 +252,18 @@ export class StoragePage implements OnInit {
 
   statusLabel(status: StorageConnectionContract['status']): string {
     return { pending: 'Pendiente', ready: 'Preparada (historico)', error: 'Error registrado', revoked: 'Revocada' }[status];
+  }
+
+  /**
+   * iRec root state derived from the stored lifecycle only: the backend
+   * exposes no root id, so a verified connection implies the folder check
+   * passed at that time, never that Drive is healthy right now.
+   */
+  rootLabel(connection: StorageConnectionContract): string {
+    if (connection.status === 'ready' && connection.lastVerifiedAt) return 'Carpeta iRec verificada';
+    if (connection.status === 'ready') return 'Carpeta iRec pendiente de verificacion';
+    if (connection.status === 'pending') return 'Carpeta iRec pendiente de preparacion';
+    return 'Carpeta iRec sin verificar';
   }
 
   formatDate(value: string | null): string {
