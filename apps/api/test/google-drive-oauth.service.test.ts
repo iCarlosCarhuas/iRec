@@ -439,6 +439,80 @@ test(
 );
 
 test(
+  'same Google account upserts with rootId null so the stored root is reused',
+  async () => {
+    const upserts: Array<{ ownerId: string; input: Record<string, unknown> }> = [];
+
+    const redis = {
+      async connect() {},
+      client: {
+        async call(command: string, key: string) {
+          assert.equal(command, 'GETDEL');
+          assert.equal(key, 'irec:storage:google-oauth:state-hash');
+          return JSON.stringify({
+            ownerId: 'user-123',
+            createdAt: '2026-10-01T00:00:00.000Z',
+          });
+        },
+      },
+    };
+
+    const storage = {
+      async upsert(ownerId: string, input: Record<string, unknown>) {
+        upserts.push({ ownerId, input });
+        return { id: `connection-${upserts.length}`, status: 'pending' };
+      },
+    };
+
+    const originalFetch = globalThis.fetch;
+
+    globalThis.fetch = (async (input: string | URL | Request) => {
+      const url = String(input);
+      if (url === 'https://oauth2.googleapis.com/token') {
+        return new Response(
+          JSON.stringify({
+            access_token: 'ephemeral-access-token',
+            refresh_token: 'long-lived-refresh-token',
+            scope: GOOGLE_DRIVE_SCOPE,
+            token_type: 'Bearer',
+          }),
+          { status: 200 },
+        );
+      }
+      return new Response(
+        JSON.stringify({ user: { permissionId: 'permission-123' } }),
+        { status: 200 },
+      );
+    }) as typeof fetch;
+
+    try {
+      const service = new GoogleDriveOAuthService(
+        config() as never,
+        crypto() as never,
+        redis as never,
+        storage as never,
+      );
+
+      await service.completeAuthorization('user-123', 'code-a', 'raw-state');
+      await service.completeAuthorization('user-123', 'code-b', 'raw-state');
+
+      assert.equal(upserts.length, 2);
+      for (const upsert of upserts) {
+        assert.equal(upsert.ownerId, 'user-123');
+        // Null rootId keeps the (ownerId, provider, providerAccountId)
+        // conflict row and its stored root; a different permissionId
+        // would upsert a separate row instead.
+        assert.equal(upsert.input.rootId, null);
+        assert.equal(upsert.input.provider, 'google_drive');
+        assert.equal(upsert.input.providerAccountId, 'permission-123');
+      }
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  },
+);
+
+test(
   'consumes OAuth state when authorization is cancelled',
   async () => {
     let reads = 0;

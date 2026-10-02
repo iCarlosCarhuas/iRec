@@ -17,6 +17,9 @@ const FILES_ENDPOINT = 'https://www.googleapis.com/drive/v3/files';
 const FOLDER_MIME = 'application/vnd.google-apps.folder';
 const FIELDS = 'id,name,mimeType,trashed,appProperties,capabilities(canAddChildren)';
 const PREPARE_TIMEOUT_MS = 30_000;
+// A freshly verified root is returned without contacting Google. Repeat
+// prepare clicks inside this window are a recheck, not a new verification.
+const ROOT_VERIFIED_FRESH_MS = 10 * 60 * 1000;
 type ProviderBudget = { deadline: number; signal: AbortSignal };
 
 const ROOT_QUERY = `trashed = false and name = 'iRec' and mimeType = '${FOLDER_MIME}' and appProperties has { key='irecRoot' and value='v1' }`;
@@ -30,6 +33,8 @@ export class GoogleDriveRootService {
 
   async prepareRoot(connectionId: string, ownerId: string): Promise<StorageConnection> {
     try {
+      const cached = await this.storage.getOwned(connectionId, ownerId);
+      if (cached && this.isFreshlyVerified(cached)) return cached;
       const connection = await this.storage.prepareGoogleDriveRoot(
         connectionId,
         ownerId,
@@ -65,6 +70,13 @@ export class GoogleDriveRootService {
       // Includes decryption/database failures; never propagate secret-bearing causes.
       throw new ServiceUnavailableException('Google Drive root preparation could not be completed.');
     }
+  }
+
+  private isFreshlyVerified(connection: StorageConnection): boolean {
+    return connection.status === 'ready' &&
+      typeof connection.rootId === 'string' && connection.rootId.length > 0 &&
+      connection.lastVerifiedAt instanceof Date &&
+      Date.now() - connection.lastVerifiedAt.getTime() <= ROOT_VERIFIED_FRESH_MS;
   }
 
   private async refreshAccessToken(envelope: string, budget: ProviderBudget): Promise<string> {

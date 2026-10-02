@@ -20,11 +20,11 @@ type Handler = (url: URL, init: RequestInit) => Promise<Response> | Response;
 
 // Model row-lock serialization/rollback without a live DB. SQL lock/predicates
 // are asserted here; PostgreSQL's runtime behavior remains an integration gate.
-function fixture(rootId: string | null = null, status = 'pending') {
+function fixture(rootId: string | null = null, status = 'pending', lastVerifiedAt: Date | null = null) {
   let row = {
     id: 'connection', ownerId: 'owner', provider: 'google_drive', providerAccountId: 'account',
     displayName: null, rootId, status, credentialsEncrypted: 'fixture-ciphertext',
-    lastVerifiedAt: null as Date | null, createdAt: new Date(), updatedAt: new Date(),
+    lastVerifiedAt, createdAt: new Date(), updatedAt: new Date(),
   };
   let queue = Promise.resolve();
   let failPersistence = false;
@@ -38,6 +38,20 @@ function fixture(rootId: string | null = null, status = 'pending') {
     try { return await operation(); } finally { release(); }
   }
   const db = {
+    // Non-locking recheck read backing StorageConnectionService.getOwned.
+    select() {
+      let matches = false;
+      const chain = {
+        from() { return chain; },
+        where(predicate: SQL) {
+          const query = new PgDialect().sqlToQuery(predicate);
+          matches = query.params[0] === row.id && query.params[1] === row.ownerId;
+          return chain;
+        },
+        async limit() { return matches ? [{ ...row }] : []; },
+      };
+      return chain;
+    },
     async transaction(operation: (tx: unknown) => Promise<unknown>) {
       return serialized(async () => {
         let matches = false;
@@ -156,18 +170,41 @@ test('looks up only marked iRec folders; creates marked root and persists no acc
   });
 });
 
-test('revalidates a ready marked root even if renamed, without lookup/create', async () => {
-  const f = fixture(folder.id, 'ready');
+test('revalidates a stale ready marked root even if renamed, without lookup/create', async () => {
+  const f = fixture(folder.id, 'ready', new Date(0));
   let gets = 0;
   await withProvider((url) => tokenOr(url, () => {
     assert.equal(url.pathname, `/drive/v3/files/${folder.id}`);
     gets++;
     return json({ ...folder, name: 'My renamed root' });
   }), async () => {
-    await f.service.prepareRoot('connection', 'owner');
-    await f.service.prepareRoot('connection', 'owner');
-    assert.equal(gets, 2);
-    assert.equal(f.writes.length, 2);
+    const result = await f.service.prepareRoot('connection', 'owner');
+    assert.equal(result.rootId, folder.id);
+    assert.equal(gets, 1);
+    assert.equal(f.writes.length, 1);
+  });
+});
+
+test('returns a freshly verified root without decrypting credentials or contacting Google', async () => {
+  const f = fixture(folder.id, 'ready', new Date());
+  await withProvider(() => { throw new Error('Provider must not be contacted'); }, async () => {
+    const result = await f.service.prepareRoot('connection', 'owner');
+    assert.equal(result.rootId, folder.id);
+    assert.equal(result.status, 'ready');
+    assert.equal(f.decrypts(), 0);
+    assert.equal(f.writes.length, 0);
+  });
+});
+
+test('a stale verification still revalidates against the provider', async () => {
+  const f = fixture(folder.id, 'ready', new Date(0));
+  await withProvider((url) => tokenOr(url, () => {
+    assert.equal(url.pathname, `/drive/v3/files/${folder.id}`);
+    return json({ ...folder, name: 'My renamed root' });
+  }), async () => {
+    const result = await f.service.prepareRoot('connection', 'owner');
+    assert.equal(result.rootId, folder.id);
+    assert.equal(f.writes.length, 1);
   });
 });
 
@@ -371,12 +408,12 @@ test('concurrent service instances serialize lookup/create/persist, and reconnec
   }), async () => {
     const first = f.service.prepareRoot('connection', 'owner');
     const second = f.secondService.prepareRoot('connection', 'owner');
-    const reconnect = f.storage.upsert('owner', {
-      provider: 'google_drive', providerAccountId: 'account', rootId: null, credentialEnvelope: envelope,
-    });
-    const [a, b, reconnected] = await Promise.all([first, second, reconnect]);
+    const [a, b] = await Promise.all([first, second]);
     assert.equal(a.rootId, folder.id);
     assert.equal(b.rootId, folder.id);
+    const reconnected = await f.storage.upsert('owner', {
+      provider: 'google_drive', providerAccountId: 'account', rootId: null, credentialEnvelope: envelope,
+    });
     assert.equal(reconnected.rootId, folder.id);
     assert.equal(reconnected.status, 'pending');
     assert.equal(reconnected.lastVerifiedAt, null);

@@ -1,25 +1,29 @@
 import 'reflect-metadata';
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { Module } from '@nestjs/common';
+import { BadGatewayException, Module, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import cookieParser from 'cookie-parser';
 
-import { SessionService } from '../src/auth/session.service.js';
+import { AuthService } from '../src/auth/auth.service.js';
 import { ProblemDetailsFilter } from '../src/http/problem-details.filter.js';
 import { GoogleDriveOAuthController } from '../src/storage/google-drive-oauth.controller.js';
+import { GoogleDriveRootService } from '../src/storage/google-drive-root.service.js';
 import { GoogleDriveOAuthService, GOOGLE_DRIVE_SCOPE } from '../src/storage/google-drive-oauth.service.js';
 
 // tsx does not emit constructor metadata; production tsc does.
-Reflect.defineMetadata('design:paramtypes', [GoogleDriveOAuthService, SessionService, ConfigService], GoogleDriveOAuthController);
+Reflect.defineMetadata('design:paramtypes', [GoogleDriveOAuthService, GoogleDriveRootService, AuthService, ConfigService], GoogleDriveOAuthController);
 
 test('Google OAuth callback HTTP redirect and authentication', async (t) => {
   const owner = 'fixture-owner';
   const states = new Map<string, string>();
   const persisted: string[] = [];
+  const prepared: [string, string][] = [];
   let providerCalls = 0;
   let providerFailure = false;
+  let prepareFailure: { status: number; message: string } | null = null;
+  let drivePermissionId = 'private-account';
   let publicWebUrl: string | undefined = 'https://web.example.test/old?discard=yes#discard';
   const config = {
     get(key: string) {
@@ -32,6 +36,9 @@ test('Google OAuth callback HTTP redirect and authentication', async (t) => {
       return values[key];
     },
     getOrThrow(key: string) {
+      if (key === 'ACCESS_TOKEN_TTL_SECONDS') return 900;
+      if (key === 'REFRESH_TOKEN_TTL_SECONDS') return 43200;
+      if (key === 'COOKIE_SECURE') return false;
       const value = this.get(key);
       if (value === undefined) throw new Error('Missing config');
       return value;
@@ -59,27 +66,48 @@ test('Google OAuth callback HTTP redirect and authentication', async (t) => {
       },
     } as never,
     {
-      async upsert(userId: string) {
+      async upsert(userId: string, input: { providerAccountId: string }) {
         persisted.push(userId);
         return {
-          id: 'fixture-connection', status: 'pending',
+          id: `fixture-connection-${input.providerAccountId}`, status: 'pending',
           rootId: 'private-root', credentialsEncrypted: 'private-ciphertext',
           credentialEnvelope: 'private-envelope', accessToken: 'private-access',
         };
       },
     } as never,
   );
-  const sessions = {
-    async getSession(cookie: string | undefined) {
-      if (cookie !== 'owner-session' && cookie !== 'other-session') return null;
-      return { id: cookie === 'owner-session' ? owner : 'other-owner' };
+  const roots = {
+    async prepareRoot(id: string, userId: string) {
+      prepared.push([id, userId]);
+      if (prepareFailure) {
+        const failure = prepareFailure;
+        if (failure.status >= 500) throw new BadGatewayException(failure.message);
+        throw new UnauthorizedException(failure.message);
+      }
+      return { id, status: 'ready', rootId: 'private-root', lastVerifiedAt: new Date() };
+    },
+  };
+  const auth = {
+    async getSession(access: string | undefined, refresh: string | undefined, trusted: string | undefined) {
+      assert.equal(trusted, undefined);
+      if (access === 'owner-session') return { body: { authenticated: true as const, user: { id: owner } } };
+      if (access === 'other-session') return { body: { authenticated: true as const, user: { id: 'other-owner' } } };
+      if (access === 'expired-session' && refresh === 'valid-refresh') {
+        return {
+          body: { authenticated: true as const, user: { id: owner } },
+          accessToken: 'rotated-access',
+          refreshToken: 'rotated-refresh',
+        };
+      }
+      return { body: { authenticated: false as const } };
     },
   };
   @Module({
     controllers: [GoogleDriveOAuthController],
     providers: [
       { provide: GoogleDriveOAuthService, useValue: oauth },
-      { provide: SessionService, useValue: sessions },
+      { provide: GoogleDriveRootService, useValue: roots },
+      { provide: AuthService, useValue: auth },
       { provide: ConfigService, useValue: config },
     ],
   })
@@ -100,7 +128,7 @@ test('Google OAuth callback HTTP redirect and authentication', async (t) => {
       }, { status: providerFailure ? 400 : 200 });
     }
     assert.equal(new URL(String(input)).origin, 'https://www.googleapis.com');
-    return Response.json({ user: { permissionId: 'private-account', displayName: 'Fixture Drive' } });
+    return Response.json({ user: { permissionId: drivePermissionId, displayName: 'Fixture Drive' } });
   }) as typeof fetch;
 
   async function request(path: string, cookie = 'irec_access=owner-session', headers: Record<string, string> = {}) {
@@ -119,9 +147,9 @@ test('Google OAuth callback HTTP redirect and authentication', async (t) => {
     assert.doesNotMatch(JSON.stringify(value), /private-|fixture-code|stack|credentials|rootId/);
   }
   try {
-    await t.test('only access sessions can connect or callback; auth-flow and refresh cookies do not authorize', async () => {
+    await t.test('only authenticated sessions can connect or callback; expired access needs a valid refresh', async () => {
       state('auth-state');
-      for (const cookie of ['', 'irec_access=expired', 'irec_auth_flow=owner-session', 'irec_refresh=owner-session']) {
+      for (const cookie of ['', 'irec_access=expired', 'irec_access=expired-session', 'irec_auth_flow=owner-session', 'irec_refresh=owner-session', 'irec_access=expired-session; irec_refresh=stale-refresh']) {
         await problem(await request('connect', cookie), 401);
         await problem(await request('callback?code=fixture-code&state=auth-state', cookie), 401);
         await problem(await request('callback?error=access_denied&state=auth-state', cookie), 401);
@@ -129,6 +157,17 @@ test('Google OAuth callback HTTP redirect and authentication', async (t) => {
       assert.equal(states.has('irec:storage:google-oauth:auth-state'), true);
       assert.equal(providerCalls, 0);
       assert.deepEqual(persisted, []);
+      assert.deepEqual(prepared, []);
+    });
+    await t.test('expired access with a valid refresh connects and rotates cookies', async () => {
+      const response = await request('connect?redirect=https://evil.example', 'irec_access=expired-session; irec_refresh=valid-refresh');
+      assert.equal(response.status, 302);
+      const setCookie = response.headers.get('set-cookie') ?? '';
+      assert.match(setCookie, /irec_access=rotated-access/);
+      assert.match(setCookie, /irec_refresh=rotated-refresh/);
+      const location = new URL(response.headers.get('location')!);
+      assert.equal(location.origin, 'https://accounts.google.com');
+      assert.equal(location.searchParams.get('state'), 'connect-state');
     });
     await t.test('connect preserves the backend Google authorization route', async () => {
       const response = await request('connect?redirect=https://evil.example');
@@ -139,7 +178,7 @@ test('Google OAuth callback HTTP redirect and authentication', async (t) => {
       assert.equal(location.searchParams.get('state'), 'connect-state');
       assert.equal(states.has('irec:storage:google-oauth:connect-state'), true);
     });
-    await t.test('successful callback discards request host, forwarded host and redirect inputs; exposes no connection data', async () => {
+    await t.test('successful callback auto-prepares the root then redirects without connection data', async () => {
       state('success-state');
       const response = await request(
         'callback?code=fixture-code&state=success-state&redirect=https://evil.example&next=//evil.example&token=private-input',
@@ -153,9 +192,51 @@ test('Google OAuth callback HTTP redirect and authentication', async (t) => {
       assert.equal(response.headers.get('set-cookie'), null);
       assert.doesNotMatch(await response.text(), /private-|fixture-code|success-state|rootId|credentials|evil\.example/);
       assert.deepEqual(persisted, [owner]);
+      assert.deepEqual(prepared, [['fixture-connection-private-account', owner]]);
       assert.equal(providerCalls, 2);
       await problem(await request('callback?code=fixture-code&state=success-state'), 400, 'OAuth state invalido o expirado.');
       assert.equal(providerCalls, 2);
+    });
+    await t.test('expired access with a valid refresh completes the callback and rotates cookies', async () => {
+      state('rotated-state');
+      const response = await request(
+        'callback?code=fixture-code&state=rotated-state',
+        'irec_access=expired-session; irec_refresh=valid-refresh',
+      );
+      assert.equal(response.status, 302);
+      assert.equal(response.headers.get('location'), 'https://web.example.test/settings/storage');
+      const setCookie = response.headers.get('set-cookie') ?? '';
+      assert.match(setCookie, /irec_access=rotated-access/);
+      assert.match(setCookie, /irec_refresh=rotated-refresh/);
+      assert.deepEqual(persisted, [owner, owner]);
+      assert.deepEqual(prepared.slice(1), [['fixture-connection-private-account', owner]]);
+    });
+    await t.test('same Google account reuses its connection; a different account prepares separately', async () => {
+      state('reuse-state');
+      await request('callback?code=fixture-code&state=reuse-state');
+      assert.deepEqual(prepared.slice(-1), [['fixture-connection-private-account', owner]]);
+      drivePermissionId = 'private-account-2';
+      state('second-account-state');
+      await request('callback?code=fixture-code&state=second-account-state');
+      assert.deepEqual(prepared.slice(-1), [['fixture-connection-private-account-2', owner]]);
+      drivePermissionId = 'private-account';
+    });
+    await t.test('auto-prepare failures map to 400/502 without leaking tokens', async () => {
+      prepareFailure = { status: 401, message: 'Google Drive authorization is invalid; reconnect.' };
+      state('stale-credential-state');
+      await problem(
+        await request('callback?code=fixture-code&state=stale-credential-state'),
+        400,
+        'Google Drive authorization is invalid; reconnect.',
+      );
+      prepareFailure = { status: 503, message: 'Google Drive is unavailable; try again later.' };
+      state('outage-state');
+      await problem(
+        await request('callback?code=fixture-code&state=outage-state'),
+        502,
+        'Google Drive is unavailable; try again later.',
+      );
+      prepareFailure = null;
     });
     await t.test('incomplete, expired and foreign-owner state cannot redirect or reach the provider', async () => {
       const before = providerCalls;
@@ -181,7 +262,7 @@ test('Google OAuth callback HTTP redirect and authentication', async (t) => {
       state('provider-state');
       await problem(await request('callback?code=fixture-code&state=provider-state'), 502, 'Google OAuth no pudo completar el intercambio del codigo.');
       await problem(await request('callback?code=fixture-code&state=provider-state'), 400, 'OAuth state invalido o expirado.');
-      assert.deepEqual(persisted, [owner]);
+      assert.deepEqual(persisted, [owner, owner, owner, owner, owner, owner]);
       providerFailure = false;
     });
     await t.test('missing, invalid, non-HTTP or credential-bearing public URLs fail closed before completing OAuth', async () => {
