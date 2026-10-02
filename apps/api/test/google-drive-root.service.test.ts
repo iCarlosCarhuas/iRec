@@ -278,6 +278,90 @@ test('retries persistence failure by finding the remotely created marker, not cr
   });
 });
 
+test('pagination uses the remaining shared deadline and awaits cancellation before releasing the lock', async (t) => {
+  const f = fixture();
+  const controller = new AbortController();
+  const originalTimeout = AbortSignal.timeout;
+  const requestTimeouts: number[] = [];
+  let now = 0;
+  let cancelled = false;
+  t.mock.method(performance, 'now', () => now);
+  t.mock.method(AbortSignal, 'timeout', (ms: number) => {
+    if (ms === 30_000) return controller.signal;
+    requestTimeouts.push(ms);
+    return originalTimeout(ms);
+  });
+  await withProvider(async (url, init) => {
+    if (url.hostname === 'oauth2.googleapis.com') return json(token);
+    assert.notEqual(init.method, 'POST');
+    if (!url.searchParams.has('pageToken')) {
+      now = 29_500;
+      return json({ files: [], nextPageToken: 'second-page' });
+    }
+    return new Promise<Response>((_resolve, reject) => {
+      init.signal!.addEventListener('abort', () => {
+        cancelled = true;
+        reject(new Error('provider-secret'));
+      }, { once: true });
+      controller.abort();
+    });
+  }, async () => {
+    await sanitizedFailure(() => f.service.prepareRoot('connection', 'owner'), 503, 'unavailable');
+    assert.equal(cancelled, true);
+    assert.deepEqual(requestTimeouts, [10_000, 10_000, 500]);
+    assert.equal(f.writes.length, 0);
+  });
+  t.mock.restoreAll();
+  // Failure has settled and released the serialized transaction for a retry.
+  await withProvider((url) => tokenOr(url, () => json({ files: [folder] })), async () => {
+    assert.equal((await f.secondService.prepareRoot('connection', 'owner')).status, 'ready');
+  });
+});
+
+test('deadline exhaustion between pages fails closed without another request or create', async (t) => {
+  const f = fixture();
+  let now = 0;
+  let pages = 0;
+  t.mock.method(performance, 'now', () => now);
+  await withProvider((url, init) => tokenOr(url, () => {
+    assert.notEqual(init.method, 'POST');
+    pages++;
+    now = 30_001;
+    return json({ files: [], nextPageToken: 'unread-page' });
+  }), async () => {
+    await sanitizedFailure(() => f.service.prepareRoot('connection', 'owner'), 503, 'unavailable');
+    assert.equal(pages, 1);
+    assert.equal(f.writes.length, 0);
+  });
+});
+
+test('shared deadline cancels stalled response body consumption without persisting ready', async (t) => {
+  const f = fixture(folder.id, 'ready');
+  const controller = new AbortController();
+  const originalTimeout = AbortSignal.timeout;
+  t.mock.method(AbortSignal, 'timeout', (ms: number) =>
+    ms === 30_000 ? controller.signal : originalTimeout(ms));
+  let bodyCancelled = false;
+  await withProvider((url, init) => {
+    if (url.hostname === 'oauth2.googleapis.com') return json(token);
+    return new Response(new ReadableStream({
+      start(stream) {
+        init.signal!.addEventListener('abort', () => {
+          bodyCancelled = true;
+          stream.error(new Error('provider-secret'));
+        }, { once: true });
+        // Allow headers to resolve and JSON consumption to begin before aborting.
+        setTimeout(() => controller.abort(), 5);
+      },
+    }));
+  }, async () => {
+    await sanitizedFailure(() => f.service.prepareRoot('connection', 'owner'), 503, 'unavailable');
+    assert.equal(bodyCancelled, true);
+    assert.equal(f.writes.length, 0);
+    assert.equal(f.row().status, 'ready'); // Historical state, not a health verdict.
+  });
+});
+
 test('concurrent service instances serialize lookup/create/persist, and reconnect retains the root', async () => {
   const f = fixture();
   let creates = 0;

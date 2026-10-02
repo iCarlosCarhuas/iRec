@@ -8,6 +8,7 @@ import { GoogleDriveOAuthController } from './google-drive-oauth.controller.js';
 import { GoogleDriveOAuthService } from './google-drive-oauth.service.js';
 import { GoogleDriveRootService } from './google-drive-root.service.js';
 import { StorageConnectionService } from './storage-connection.service.js';
+import { StorageController } from './storage.controller.js';
 import { StorageProviderRegistry } from './storage-provider.registry.js';
 
 @Module({
@@ -18,6 +19,7 @@ import { StorageProviderRegistry } from './storage-provider.registry.js';
   ],
   controllers: [
     GoogleDriveOAuthController,
+    StorageController,
   ],
   providers: [
     GoogleDriveOAuthService,

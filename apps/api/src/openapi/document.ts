@@ -14,6 +14,9 @@ import {
   RecoveryReadyResponseSchema,
   SessionResponseSchema,
   SuccessResponseSchema,
+  StorageConnectionContract,
+  StorageConnectionIdParamsSchema,
+  StorageConnectionsResponseSchema,
   TotpConfirmRequestSchema,
   TotpEnrollResponseSchema,
   TotpRotateConfirmRequestSchema,
@@ -546,6 +549,38 @@ Web: http://127.0.0.1:4200 · API: http://127.0.0.1:3000 · Mailpit: http://127.
             description: 'La propuesta ya tiene una decision final distinta',
             content: { 'application/problem+json': { schema: ProblemDetailsSchema } },
           },
+          ...problemResponses,
+        },
+      },
+    },
+
+    '/storage/connections': {
+      get: {
+        operationId: 'storageConnectionsList',
+        tags: ['Storage'],
+        summary: 'List connections owned by the current session',
+        description: 'Stored status and last successful verification only; ready is not proof of current provider health, including after a failed prepare.',
+        security: [{ accessCookie: [] }],
+        responses: {
+          '200': { description: 'Owned connections without credentials or provider identifiers', content: json(StorageConnectionsResponseSchema) },
+          ...problemResponses,
+        },
+      },
+    },
+    '/storage/connections/{connectionId}/prepare': {
+      post: {
+        operationId: 'storageConnectionPrepare',
+        tags: ['Storage'],
+        summary: 'Verify or prepare the owned Google Drive root',
+        description: 'Revalidates the provider even for stored ready connections. Provider work has a shared 30-second deadline. Failure does not certify health or replace historical stored status.',
+        security: [{ accessCookie: [] }],
+        requestParams: { path: StorageConnectionIdParamsSchema },
+        responses: {
+          '200': { description: 'Connection successfully verified without credentials or provider identifiers', content: json(StorageConnectionContract) },
+          '403': { description: 'Google Drive permissions do not allow writing', content: { 'application/problem+json': { schema: ProblemDetailsSchema } } },
+          '404': { description: 'Connection absent, not owned or not Google Drive', content: { 'application/problem+json': { schema: ProblemDetailsSchema } } },
+          '502': { description: 'Invalid provider response', content: { 'application/problem+json': { schema: ProblemDetailsSchema } } },
+          '503': { description: 'Provider unavailable, deadline exceeded or preparation failed', content: { 'application/problem+json': { schema: ProblemDetailsSchema } } },
           ...problemResponses,
         },
       },

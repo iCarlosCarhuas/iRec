@@ -14,6 +14,8 @@ const requiredPaths = [
   '/auth/recovery/code',
   '/storage/google/connect',
   '/storage/google/callback',
+  '/storage/connections',
+  '/storage/connections/{connectionId}/prepare',
 ];
 
 if (openApiDocument.openapi !== '3.1.0') {
